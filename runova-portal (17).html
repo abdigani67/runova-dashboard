@@ -178,6 +178,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--i
 .badge-ai{background:var(--bg);color:var(--ink-2)}
 .badge-sold,.badge-attended{background:var(--good-bg);color:var(--good)}
 .badge-other,.badge-{background:#f0eef3;color:#6b6775}
+/* Small pill button to return a lead from staff back to the AI */
+.pill-handback{display:inline-flex;align-items:center;gap:4px;margin-left:7px;padding:3px 11px;border-radius:999px;font-size:11px;font-weight:600;font-family:inherit;border:1px solid var(--line);background:var(--surface);color:var(--aubergine-700);cursor:pointer;vertical-align:middle;white-space:nowrap;transition:border-color .14s,background .14s,color .14s}
+.pill-handback:hover{border-color:var(--gold);background:var(--bg)}
+.pill-handback:disabled{opacity:.55;cursor:default}
 
 /* ───── LEADS TABLE ───── */
 .filter-row{display:flex;gap:7px;margin-bottom:16px;flex-wrap:wrap}
@@ -516,7 +520,7 @@ function journeyOf(l){
 const JOURNEY_LABEL={new:'New',active:'In chat',booked:'Booked',staff:'With staff'};
 function sentClass(s){ return `sent-${s||'neutral'}`; }
 function riskBadge(r){ if(!r) return '—'; const c=r==='high'?'color:var(--hot)':r==='medium'?'color:var(--warm)':'color:var(--good)'; return `<span style="font-weight:600;${c}">${r}</span>`; }
-function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2600); }
+function toast(msg,dur){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),dur||2600); }
 
 // Build a 14-day enquiries area chart (inline SVG, no library)
 function enquiriesChart(){
@@ -680,7 +684,7 @@ function renderLeads(){
           : filtered.map(l=>`
             <tr onclick="openLeadModal(${JSON.stringify(l).replace(/"/g,'&quot;')})">
               <td class="td-handle" title="${l.instagram_handle}">${l.instagram_handle||'—'}</td>
-              <td><span class="badge badge-${journeyOf(l)}">${JOURNEY_LABEL[journeyOf(l)]}</span></td>
+              <td><span class="badge badge-${journeyOf(l)}">${JOURNEY_LABEL[journeyOf(l)]}</span>${journeyOf(l)==='staff'?`<button class="pill-handback" onclick="event.stopPropagation();handBackToAI('${l.id}',this)">Hand back to AI</button>`:''}</td>
               <td>${tempBadge(l.lead_temperature)||'—'}</td>
               <td><span class="${sentClass(l.sentiment)}">${l.sentiment||'—'}</span></td>
               <td class="tnum">£${l.estimated_value||0}</td>
@@ -743,6 +747,24 @@ async function markBooked(leadId,booked){
     lastSignature=dataSignature(); closeModal(); renderOverview(); renderLeads();
     toast(booked?'Marked as booked':'Booking undone');
   }catch(e){ toast('Could not update — '+e.message); }
+}
+// Return a lead from staff back to the AI. The Make DM engine's C1 guard only
+// re-engages when BOTH ai_active=true AND handoff_status='ai', so we set both.
+// Writes go through the anon key + RLS (no service-role key in the browser).
+async function handBackToAI(leadId,btn){
+  if(btn) btn.disabled=true;
+  try{
+    const {error}=await supabaseClient.from('leads')
+      .update({ai_active:true, handoff_status:'ai'})
+      .eq('id',leadId);
+    if(error){ if(btn) btn.disabled=false; toast('Could not reactivate AI — '+error.message); return; }
+    // Update local state so the badge flips off "With staff" and the button disappears
+    const lead=allLeads.find(l=>String(l.id)===String(leadId));
+    if(lead){ lead.ai_active=true; lead.handoff_status='ai'; }
+    lastSignature=dataSignature();
+    renderOverview(); renderLeads();
+    toast('AI reactivated ✓', 2000);
+  }catch(e){ if(btn) btn.disabled=false; toast('Could not reactivate AI — '+e.message); }
 }
 const OUTCOME_LABEL={sold:'Treatment sold',lost:'Lost'};
 async function setOutcome(leadId,outcome){
