@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runova</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Brand: aubergine + champagne-gold hairline */
+  --aubergine:#3a1b4e;
+  --aubergine-deep:#2a1338;
+  --aubergine-700:#4a2563;
+  --gold:#c9a86a;
+  --gold-soft:#e3cd9e;
+  --ink:#1b1620;
+  --ink-2:#4b4452;
+  --ink-3:#736c7d;
+  --muted:#a39bab;
+  --bg:#f7f5f8;
+  --surface:#ffffff;
+  --line:#ece8ef;
+  --line-2:#f5f2f7;
+  --hot:#bb362c;--hot-bg:#fbece9;
+  --warm:#9a6311;--warm-bg:#faf0db;
+  --cold:#2f5d85;--cold-bg:#e9f1f8;
+  --good:#1c7a52;--good-bg:#e7f5ed;
+  --shadow-xs:0 1px 2px rgba(27,22,32,.05);
+  --shadow:0 1px 3px rgba(27,22,32,.06),0 4px 14px rgba(27,22,32,.05);
+  --shadow-lg:0 24px 60px rgba(27,22,32,.22);
+  --r:14px;--r-sm:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.5;letter-spacing:-.006em}
+.serif{font-family:'Fraunces',Georgia,serif}
+.tnum{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ───── LOGIN ───── */
+.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden;background:radial-gradient(900px 500px at 50% -20%,#4a2563 0%,transparent 60%),linear-gradient(160deg,#2a1338,#3a1b4e 60%,#22102e)}
+.login-page::after{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,106,.4),transparent);max-width:340px;margin:0 auto}
+.login-card{position:relative;background:var(--surface);border-radius:18px;padding:42px 38px;width:100%;max-width:392px;box-shadow:var(--shadow-lg);z-index:1}
+.login-brand{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+.brand-mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(150deg,var(--aubergine-700),var(--aubergine));display:grid;place-items:center;flex-shrink:0;box-shadow:inset 0 0 0 1px rgba(201,168,106,.35)}
+.brand-mark svg{width:16px;height:16px}
+.login-brand .wm{font-size:21px;font-weight:700;letter-spacing:-.02em}
+.login-title{font-family:'Fraunces',serif;font-size:23px;font-weight:600;margin-bottom:5px;letter-spacing:-.01em}
+.login-sub{font-size:14px;color:var(--ink-3);margin-bottom:24px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:13px;font-weight:500;margin-bottom:6px;color:var(--ink-2)}
+.field input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;outline:none;background:var(--surface);transition:border-color .15s,box-shadow .15s}
+.field input:focus{border-color:var(--aubergine-700);box-shadow:0 0 0 3px rgba(74,37,99,.1)}
+.login-btn{width:100%;padding:13px;background:linear-gradient(150deg,var(--aubergine-700),var(--aubergine));color:#fff;border:none;border-radius:10px;font-size:14.5px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:6px;transition:transform .12s,box-shadow .2s;box-shadow:0 4px 16px rgba(58,27,78,.3)}
+.login-btn:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(58,27,78,.36)}
+.login-btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.login-err{background:var(--hot-bg);border:1px solid #f0c8c3;color:var(--hot);padding:9px 13px;border-radius:8px;font-size:13px;margin-bottom:14px;display:none}
+
+/* ───── APP LAYOUT ───── */
+.app{display:none;min-height:100vh}
+.shell{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+
+/* Sidebar */
+.sidebar{background:linear-gradient(180deg,var(--aubergine) 0%,var(--aubergine-deep) 100%);color:#fff;padding:22px 16px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.sb-brand{display:flex;align-items:center;gap:10px;padding:4px 8px 22px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-brand .wm{font-size:19px;font-weight:700;letter-spacing:-.02em;color:#fff}
+.sb-brand .brand-mark{box-shadow:inset 0 0 0 1px rgba(201,168,106,.45)}
+.sb-section{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.38);font-weight:600;padding:18px 10px 8px}
+.sb-nav{display:flex;flex-direction:column;gap:2px}
+.sb-link{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:9px;font-size:13.5px;font-weight:500;color:rgba(255,255,255,.66);cursor:pointer;border:none;background:none;font-family:inherit;text-align:left;width:100%;transition:background .14s,color .14s}
+.sb-link svg{width:17px;height:17px;stroke:currentColor;flex-shrink:0;opacity:.9}
+.sb-link:hover{background:rgba(255,255,255,.07);color:#fff}
+.sb-link.active{background:rgba(255,255,255,.1);color:#fff}
+.sb-link.active::before{content:'';position:absolute;left:0;width:3px;height:20px;border-radius:0 3px 3px 0;background:var(--gold)}
+.sb-link{position:relative}
+.sb-foot{margin-top:auto;padding:14px 10px 4px;border-top:1px solid rgba(255,255,255,.08)}
+.sb-clinic{font-size:13px;font-weight:600;color:#fff;margin-bottom:2px}
+.sb-conn{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:rgba(255,255,255,.5);margin-bottom:12px}
+.sb-conn .dot{width:6px;height:6px;border-radius:50%;background:#cbb27e;transition:background .2s}
+.sb-conn.live .dot{background:#6fd39e;box-shadow:0 0 0 3px rgba(111,211,158,.18)}
+.sb-conn.offline .dot{background:#e0a04a}
+.sb-signout{font-size:12.5px;color:rgba(255,255,255,.6);background:rgba(255,255,255,.08);border:none;border-radius:8px;padding:8px 12px;font-family:inherit;cursor:pointer;width:100%;transition:background .15s}
+.sb-signout:hover{background:rgba(255,255,255,.16);color:#fff}
+
+/* Mobile topbar (hidden on desktop) */
+.mtop{display:none}
+
+/* Content */
+.content{padding:30px 34px 60px;max-width:1080px}
+.tab-enter{animation:fadeUp .34s cubic-bezier(.22,1,.36,1)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.page-title{font-family:'Fraunces',serif;font-size:24px;font-weight:600;letter-spacing:-.01em;margin-bottom:3px}
+.page-sub{font-size:13.5px;color:var(--ink-3);margin-bottom:26px}
+
+/* ───── HERO ROW: big figure + chart ───── */
+.hero-row{display:grid;grid-template-columns:1fr 1.4fr;gap:14px;margin-bottom:14px}
+.hero-figure{background:linear-gradient(155deg,var(--aubergine) 0%,var(--aubergine-deep) 100%);border-radius:var(--r);padding:26px 28px;color:#fff;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;min-height:188px}
+.hero-figure::before{content:'';position:absolute;top:-50%;right:-20%;width:280px;height:280px;background:radial-gradient(circle,rgba(201,168,106,.16),transparent 65%);pointer-events:none}
+.hf-top{position:relative;z-index:1}
+.hf-label{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--gold-soft);font-weight:600;margin-bottom:14px}
+.hf-value{font-family:'Fraunces',serif;font-size:46px;font-weight:600;line-height:.95;letter-spacing:-.02em}
+.hf-value .cur{color:var(--gold);font-size:28px;vertical-align:top;margin-right:1px}
+.hf-foot{position:relative;z-index:1;font-size:12.5px;color:rgba(255,255,255,.6);line-height:1.5}
+.hf-foot b{color:#fff;font-weight:600}
+.chart-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;display:flex;flex-direction:column}
+.chart-hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+.chart-title{font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.chart-total{font-size:12.5px;color:var(--muted)}
+.chart-wrap{flex:1;min-height:120px;position:relative}
+.chart-wrap svg{width:100%;height:100%;display:block;overflow:visible}
+
+/* ───── METRIC STRIP ───── */
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+.metric{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;transition:box-shadow .15s,transform .15s}
+.metric:hover{box-shadow:var(--shadow);transform:translateY(-1px)}
+.metric-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.metric-label{font-size:12px;font-weight:500;color:var(--ink-3)}
+.metric-ic{width:30px;height:30px;border-radius:8px;background:var(--bg);display:grid;place-items:center}
+.metric-ic svg{width:15px;height:15px;stroke:var(--aubergine-700)}
+.metric-val{font-family:'Fraunces',serif;font-size:32px;font-weight:600;line-height:1;letter-spacing:-.01em}
+.metric-sub{font-size:12px;color:var(--muted);margin-top:6px}
+.metric.flash{animation:metricFlash 1.5s ease-out}
+@keyframes metricFlash{0%{box-shadow:0 0 0 2px var(--gold)}100%{box-shadow:var(--shadow-xs)}}
+
+/* ───── PANELS ───── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px}
+.panel-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:13px;font-weight:600;letter-spacing:-.01em}
+.panel-action{font-size:12.5px;color:var(--aubergine-700);cursor:pointer;font-weight:500}
+.panel-action:hover{color:var(--aubergine)}
+
+/* Pipeline */
+.funnel{display:flex;flex-direction:column;gap:15px}
+.f-step{display:flex;align-items:center;gap:13px}
+.f-label{font-size:13px;color:var(--ink-2);width:52px;flex-shrink:0;font-weight:500}
+.f-bar-wrap{flex:1;height:8px;background:var(--line-2);border-radius:5px;overflow:hidden}
+.f-bar{height:100%;border-radius:5px;transition:width .7s cubic-bezier(.22,1,.36,1)}
+.f-count{font-size:14px;font-weight:600;width:24px;text-align:right;flex-shrink:0}
+
+/* Glance */
+.stat-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line-2)}
+.stat-row:last-child{border-bottom:none}
+.stat-lbl{font-size:13.5px;color:var(--ink-3)}
+.stat-val{font-size:14px;font-weight:600}
+.stat-val.good{color:var(--good)}
+
+/* Attention */
+.attention-list{display:flex;flex-direction:column}
+.a-item{display:flex;align-items:center;gap:13px;padding:14px 0;border-bottom:1px solid var(--line-2)}
+.a-item:first-child{padding-top:0}.a-item:last-child{border-bottom:none;padding-bottom:0}
+.a-body{flex:1;min-width:0}
+.a-handle{font-size:13.5px;font-weight:600;margin-bottom:2px;display:flex;align-items:center;gap:8px}
+.a-msg{font-size:12.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.a-meta{font-size:11.5px;color:var(--muted);margin-top:3px}
+.a-btn{background:var(--surface);color:var(--aubergine-700);border:1px solid var(--line);padding:7px 13px;border-radius:8px;font-size:12.5px;font-family:inherit;cursor:pointer;font-weight:500;flex-shrink:0;transition:background .15s,border-color .15s}
+.a-btn:hover{background:var(--bg);border-color:var(--gold)}
+
+/* ───── BADGES ───── */
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:7px;font-size:11.5px;font-weight:600;white-space:nowrap;text-transform:capitalize}
+.pill .pdot{width:5px;height:5px;border-radius:50%}
+.temp-hot{background:var(--hot-bg);color:var(--hot)}.temp-hot .pdot{background:var(--hot)}
+.temp-warm{background:var(--warm-bg);color:var(--warm)}.temp-warm .pdot{background:var(--warm)}
+.temp-cold{background:var(--cold-bg);color:var(--cold)}.temp-cold .pdot{background:var(--cold)}
+.sent-positive{color:var(--good);font-weight:600}
+.sent-neutral{color:var(--muted);font-weight:600}
+.sent-negative,.sent-frustrated,.sent-angry{color:var(--hot);font-weight:600}
+.badge{display:inline-block;padding:3px 9px;border-radius:7px;font-size:11.5px;font-weight:600;text-transform:capitalize}
+.badge-new,.badge-new_lead{background:var(--bg);color:var(--ink-2)}
+.badge-warm{background:var(--warm-bg);color:var(--warm)}
+.badge-hot{background:var(--hot-bg);color:var(--hot)}
+.badge-active,.badge-enquiry{background:var(--cold-bg);color:var(--cold)}
+.badge-booked,.badge-booked_intent{background:var(--good-bg);color:var(--good)}
+.badge-human,.badge-staff{background:var(--warm-bg);color:var(--warm)}
+.badge-ai{background:var(--bg);color:var(--ink-2)}
+.badge-sold,.badge-attended{background:var(--good-bg);color:var(--good)}
+.badge-other,.badge-{background:#f0eef3;color:#6b6775}
+
+/* ───── LEADS TABLE ───── */
+.filter-row{display:flex;gap:7px;margin-bottom:16px;flex-wrap:wrap}
+.fpill{padding:6px 14px;border-radius:8px;font-size:13px;font-weight:500;border:1px solid var(--line);background:var(--surface);color:var(--ink-3);cursor:pointer;font-family:inherit;transition:all .15s}
+.fpill:hover{border-color:var(--gold);color:var(--ink-2)}
+.fpill.active{background:var(--aubergine);border-color:var(--aubergine);color:#fff}
+.table-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:12px 18px;border-bottom:1px solid var(--line);white-space:nowrap;font-weight:600;background:#fcfbfd}
+td{padding:14px 18px;font-size:13px;border-bottom:1px solid var(--line-2);max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)}
+tr:last-child td{border-bottom:none}
+tbody tr{cursor:pointer;transition:background .1s}
+tbody tr:hover td{background:#fcfbfd}
+.td-handle{font-weight:600;color:var(--ink)}
+.oc-tags{display:inline-flex;gap:6px;align-items:center}
+.oc-btn{background:var(--surface);color:var(--ink-2);border:1px solid var(--line);padding:4px 11px;border-radius:7px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .13s;white-space:nowrap}
+.oc-btn:hover{border-color:var(--gold);background:var(--bg)}
+.oc-sold-btn:hover{border-color:var(--good);color:var(--good);background:var(--good-bg)}
+.oc-done{display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.oc-done.oc-sold{background:var(--good-bg);color:var(--good)}
+.oc-done.oc-lost{background:#f0eef3;color:var(--ink-3)}
+.oc-done:hover{opacity:.72}
+
+/* ───── MODAL ───── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(27,22,32,.46);backdrop-filter:blur(3px);z-index:200;align-items:center;justify-content:center;padding:24px}
+.modal-overlay.open{display:flex;animation:fadeIn .18s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--surface);border-radius:16px;width:100%;max-width:600px;max-height:86vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:modalUp .26s cubic-bezier(.22,1,.36,1)}
+@keyframes modalUp{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+.modal-hd{padding:20px 24px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:1}
+.modal-title{font-family:'Fraunces',serif;font-size:18px;font-weight:600}
+.modal-close{background:var(--bg);border:1px solid var(--line);font-size:13px;cursor:pointer;color:var(--ink-3);width:30px;height:30px;border-radius:8px;transition:background .15s}
+.modal-close:hover{background:var(--line-2)}
+.modal-body{padding:24px}
+.intel-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px}
+.intel-item{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:13px 14px}
+.intel-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;font-weight:600}
+.intel-value{font-size:14.5px;font-weight:600}
+.summary-box{background:var(--bg);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:var(--r-sm);padding:15px;font-size:13px;line-height:1.6;color:var(--ink-2)}
+.summary-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--aubergine-700);font-weight:700;margin-bottom:7px}
+.btn-primary{background:var(--aubergine);color:#fff;border:none;padding:10px 17px;border-radius:9px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s}
+.btn-primary:hover{background:var(--aubergine-700)}
+.btn-secondary{background:var(--surface);color:var(--ink-2);border:1px solid var(--line);padding:10px 17px;border-radius:9px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s}
+.btn-secondary:hover{background:var(--bg)}
+.btn-good{background:var(--good-bg);color:var(--good);border:1px solid #bce3cd;padding:10px 17px;border-radius:9px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
+
+/* ───── CONVERSATIONS ───── */
+.conv-layout{display:grid;grid-template-columns:286px 1fr;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface);min-height:580px}
+.conv-sidebar{border-right:1px solid var(--line);overflow-y:auto;max-height:680px}
+.conv-sidebar-hd{padding:15px 17px;border-bottom:1px solid var(--line);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);position:sticky;top:0;background:var(--surface)}
+.conv-item{padding:14px 17px;border-bottom:1px solid var(--line-2);cursor:pointer;transition:background .1s;border-left:2px solid transparent}
+.conv-item:hover{background:var(--bg)}
+.conv-item.active{background:var(--bg);border-left-color:var(--gold)}
+.conv-item-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;gap:8px}
+.conv-item-handle{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conv-item-temp{flex-shrink:0}
+.conv-item-preview{font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv-item-time{font-size:11px;color:var(--muted);margin-top:3px}
+.conv-main{display:flex;flex-direction:column}
+.conv-hd{padding:16px 20px;border-bottom:1px solid var(--line)}
+.conv-hd-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.conv-hd-handle{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.conv-hd-meta{font-size:12px;color:var(--muted);margin-top:4px}
+.conv-messages{flex:1;padding:20px;overflow-y:auto;max-height:540px;display:flex;flex-direction:column;gap:11px;background:var(--bg)}
+.msg-row{display:flex}
+.msg-row.user{justify-content:flex-start}
+.msg-row.ai,.msg-row.staff{justify-content:flex-end}
+.msg-bubble{max-width:74%;padding:10px 13px;border-radius:13px;font-size:13px;line-height:1.5}
+.msg-row.user .msg-bubble{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-bottom-left-radius:4px}
+.msg-row.ai .msg-bubble{background:var(--aubergine);color:#fff;border-bottom-right-radius:4px}
+.msg-row.staff .msg-bubble{background:var(--good);color:#fff;border-bottom-right-radius:4px}
+.msg-time{font-size:10.5px;color:var(--muted);margin-top:4px}
+.msg-row.ai .msg-time,.msg-row.staff .msg-time{text-align:right}
+.conv-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted);min-height:400px;font-size:13.5px}
+.conv-empty svg{width:30px;height:30px;stroke:var(--line);stroke-width:1.5}
+
+/* ───── TREATMENTS ───── */
+.treatments-note{margin-bottom:18px;font-size:13.5px;color:var(--ink-3);line-height:1.6}
+.treatments-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(256px,1fr));gap:13px}
+.treatment-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;transition:box-shadow .15s,transform .15s}
+.treatment-card:hover{box-shadow:var(--shadow);transform:translateY(-1px)}
+.treatment-card .topline{height:3px;width:34px;border-radius:3px;background:var(--gold);margin-bottom:14px}
+.treatment-name{font-size:15.5px;font-weight:600;margin-bottom:4px}
+.treatment-price{font-family:'Fraunces',serif;font-size:23px;font-weight:600;margin-bottom:12px;letter-spacing:-.01em}
+.treatment-meta{font-size:12.5px;color:var(--ink-3);line-height:1.7}
+
+/* ───── MISC ───── */
+.loader{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:320px;gap:14px}
+.spinner{width:28px;height:28px;border:2.5px solid var(--line);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-text{font-size:13px;color:var(--muted)}
+.empty{text-align:center;padding:40px;color:var(--muted);font-size:13.5px}
+.empty svg{width:30px;height:30px;stroke:var(--line);stroke-width:1.5;margin-bottom:10px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--ink);color:#fff;padding:11px 19px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);z-index:300;opacity:0;transition:transform .3s cubic-bezier(.22,1,.36,1),opacity .3s}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+@media(max-width:980px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .mtop{display:flex;align-items:center;justify-content:space-between;background:var(--aubergine);color:#fff;padding:0 18px;height:56px;position:sticky;top:0;z-index:100}
+  .mtop .wm{font-size:17px;font-weight:700;display:flex;align-items:center;gap:9px}
+  .mnav{display:flex;gap:18px;background:var(--surface);border-bottom:1px solid var(--line);padding:0 18px;overflow-x:auto;position:sticky;top:56px;z-index:90}
+  .mnav button{padding:13px 0;font-size:13.5px;font-weight:500;color:var(--ink-3);border:none;background:none;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;white-space:nowrap}
+  .mnav button.active{color:var(--ink);border-bottom-color:var(--gold);font-weight:600}
+  .content{padding:22px 18px 52px}
+  .hero-row,.metrics,.grid-2{grid-template-columns:1fr}
+  .intel-grid{grid-template-columns:1fr 1fr}
+  .conv-layout{grid-template-columns:1fr}.conv-sidebar{max-height:260px}
+}
+.mnav{display:none}
+@media(max-width:980px){.mnav{display:flex}}
+@media(max-width:520px){.metrics{grid-template-columns:1fr}.intel-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-page" id="loginPage">
+  <div class="login-card">
+    <div class="login-brand">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M5 19V7a4 4 0 014-4h2a4 4 0 010 8H9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 11l5 8" stroke="#c9a86a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="wm">Runova</span>
+    </div>
+    <div class="login-title">Sign in</div>
+    <div class="login-sub">Your AI receptionist dashboard.</div>
+    <div class="login-err" id="loginErr"></div>
+    <div class="field"><label>Email</label><input type="email" id="emailIn" autocomplete="email" placeholder="you@clinic.com"></div>
+    <div class="field"><label>Password</label><input type="password" id="passIn" autocomplete="current-password" placeholder="••••••••"></div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Sign in</button>
+  </div>
+</div>
+
+<!-- LEAD MODAL -->
+<div class="modal-overlay" id="leadModal">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title" id="modalTitle">Lead detail</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+  <!-- mobile top bar -->
+  <div class="mtop">
+    <span class="wm"><span class="brand-mark" style="width:26px;height:26px"><svg viewBox="0 0 24 24" fill="none"><path d="M5 19V7a4 4 0 014-4h2a4 4 0 010 8H9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 11l5 8" stroke="#c9a86a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Runova</span>
+    <button class="sb-signout" style="width:auto;background:rgba(255,255,255,.14)" onclick="doSignOut()">Sign out</button>
+  </div>
+  <div class="mnav">
+    <button class="active" onclick="showTab('overview',this)">Overview</button>
+    <button onclick="showTab('leads',this)">Leads</button>
+    <button onclick="showTab('conversations',this)">Conversations</button>
+    <button onclick="showTab('treatments',this)">Treatments</button>
+  </div>
+
+  <div class="shell">
+    <!-- sidebar -->
+    <aside class="sidebar">
+      <div class="sb-brand">
+        <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M5 19V7a4 4 0 014-4h2a4 4 0 010 8H9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 11l5 8" stroke="#c9a86a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="wm">Runova</span>
+      </div>
+      <div class="sb-section">Dashboard</div>
+      <nav class="sb-nav" id="sbNav">
+        <button class="sb-link active" onclick="showTab('overview',this)"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="9" rx="1.5" stroke-width="1.8"/><rect x="14" y="3" width="7" height="5" rx="1.5" stroke-width="1.8"/><rect x="14" y="12" width="7" height="9" rx="1.5" stroke-width="1.8"/><rect x="3" y="16" width="7" height="5" rx="1.5" stroke-width="1.8"/></svg>Overview</button>
+        <button class="sb-link" onclick="showTab('leads',this)"><svg viewBox="0 0 24 24" fill="none"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke-width="1.8"/><path d="M22 21v-2a4 4 0 00-3-3.87" stroke-width="1.8" stroke-linecap="round"/></svg>Leads</button>
+        <button class="sb-link" onclick="showTab('conversations',this)"><svg viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Conversations</button>
+        <button class="sb-link" onclick="showTab('treatments',this)"><svg viewBox="0 0 24 24" fill="none"><path d="M10.5 20.5L3.5 13.5a5 5 0 017-7L11 7l.5-.5a5 5 0 017 7l-7 7a1 1 0 01-1 0z" stroke-width="1.8" stroke-linejoin="round"/></svg>Treatments</button>
+      </nav>
+      <div class="sb-foot">
+        <div class="sb-clinic" id="sbClinic">—</div>
+        <div class="sb-conn" id="connBadge"><span class="dot"></span><span id="connText">Connecting…</span></div>
+        <button class="sb-signout" onclick="doSignOut()">Sign out</button>
+      </div>
+    </aside>
+
+    <!-- content -->
+    <main class="content">
+      <div id="tab-overview"></div>
+      <div id="tab-leads" style="display:none"></div>
+      <div id="tab-conversations" style="display:none"></div>
+      <div id="tab-treatments" style="display:none"></div>
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPA_URL = 'https://udlmobdkxorxwzelhmeo.supabase.co';
+// Public anon key — safe for the browser. On its own it can read NOTHING;
+// Row Level Security in Supabase decides what each logged-in user can see.
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkbG1vYmRreG9yeHd6ZWxobWVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMjM0MzgsImV4cCI6MjA5NjY5OTQzOH0.tHgGSUDf84k2KLZ51fwB0vWYMEl7wHxFh5JzFMG97pM';
+const supabaseClient = window.supabase.createClient(SUPA_URL, ANON_KEY);
+
+let clinicId = null;  // resolved from the logged-in user's clinic_users mapping
+let clinicData = null;
+let allLeads = [], allConvos = [], allTreatments = [];
+let currentFilter = 'all', activeConvoHandle = null;
+let realtimeSubs = [];
+let pollTimer = null, realtimeOk = false, lastSignature = '';
+
+const IC = {
+  enquiries:'<svg viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  ai:'<svg viewBox="0 0 24 24" fill="none"><rect x="4" y="7" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M9 7V4m6 3V4M9 12v3m6-3v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  hot:'<svg viewBox="0 0 24 24" fill="none"><path d="M12 2s5 4 5 9a5 5 0 01-10 0c0-2 1-3 1-3s.5 2 2 2c0-3 2-5 2-8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+  bell:'<svg viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  chat:'<svg viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  inbox:'<svg viewBox="0 0 24 24" fill="none"><path d="M22 12h-6l-2 3h-4l-2-3H2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 6h13l3.5 6v6a2 2 0 01-2 2H4a2 2 0 01-2-2v-6L5.5 6z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
+
+// ── AUTH ──
+async function doLogin() {
+  const email = document.getElementById('emailIn').value.trim();
+  const pass = document.getElementById('passIn').value;
+  const btn = document.getElementById('loginBtn');
+  if (!email || !pass) { showErr('Enter your email and password.'); return; }
+  btn.disabled = true; btn.textContent = 'Signing in…'; document.getElementById('loginErr').style.display='none';
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+  if (error) { showErr('That email or password didn\'t match. Try again.'); btn.disabled=false; btn.textContent='Sign in'; return; }
+  startApp();
+}
+function showErr(msg){ const e=document.getElementById('loginErr'); e.textContent=msg; e.style.display='block'; }
+async function doSignOut(){ stopPolling(); await supabaseClient.auth.signOut(); location.reload(); }
+document.getElementById('passIn').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+supabaseClient.auth.getSession().then(({data:{session}}) => { if(session) startApp(); });
+
+// ── START ──
+async function startApp(){
+  document.getElementById('loginPage').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('tab-overview').innerHTML = `<div class="loader"><div class="spinner"></div><div class="loader-text">Loading your dashboard…</div></div>`;
+  // Resolve which clinic this login belongs to (RLS + clinic_users mapping)
+  const ok = await resolveClinic();
+  if(!ok) return;
+  await loadAllData();
+  renderOverview(); renderLeads(); renderConversations(); renderTreatments();
+  subscribeRealtime(); startPolling();
+}
+
+// Find the logged-in user's clinic. Tries the my_clinic_id() helper first,
+// then falls back to reading clinic_users directly. If neither resolves, the
+// account isn't linked to a clinic yet — show a clear message instead of a blank page.
+async function resolveClinic(){
+  try{
+    const rpc = await supabaseClient.rpc('my_clinic_id');
+    if(rpc && rpc.data){ clinicId = rpc.data; return true; }
+  }catch(e){ /* helper may not exist; fall through */ }
+  try{
+    const { data } = await supabaseClient.from('clinic_users').select('clinic_id').single();
+    if(data && data.clinic_id){ clinicId = data.clinic_id; return true; }
+  }catch(e){ /* fall through */ }
+  document.getElementById('tab-overview').innerHTML =
+    `<div class="empty" style="padding:60px 20px">${IC.inbox}<div style="font-size:15px;color:var(--ink-2);margin-bottom:6px">This account isn't linked to a clinic yet.</div><div>Ask your Runova contact to finish setup, then sign in again.</div></div>`;
+  return false;
+}
+
+async function loadAllData(){
+  const [c,l,v,t] = await Promise.all([
+    supabaseClient.from('clinics').select('*').eq('id',clinicId).single(),
+    supabaseClient.from('leads').select('*').eq('clinic_id',clinicId).order('last_contact',{ascending:false}),
+    supabaseClient.from('conversations').select('*').eq('clinic_id',clinicId).order('timestamp',{ascending:true}),
+    supabaseClient.from('treatments').select('*').eq('clinic_id',clinicId).eq('active',true)
+  ]);
+  clinicData=c.data; allLeads=l.data||[]; allConvos=v.data||[]; allTreatments=t.data||[];
+  if(clinicData) document.getElementById('sbClinic').textContent=clinicData.clinic_name;
+  lastSignature=dataSignature();
+}
+function dataSignature(){
+  return JSON.stringify({l:allLeads.map(x=>[x.id,x.lead_stage,x.lead_temperature,x.last_message,x.handoff_status,x.estimated_value]),c:allConvos.length,cl:allConvos.length?allConvos[allConvos.length-1].id:null});
+}
+
+// ── LIVE DATA: polling ──
+function startPolling(){
+  stopPolling();
+  pollTimer=setInterval(async()=>{
+    if(document.hidden || !clinicId) return;
+    try{
+      const [l,v,c]=await Promise.all([
+        supabaseClient.from('leads').select('*').eq('clinic_id',clinicId).order('last_contact',{ascending:false}),
+        supabaseClient.from('conversations').select('*').eq('clinic_id',clinicId).order('timestamp',{ascending:true}),
+        supabaseClient.from('clinics').select('*').eq('id',clinicId).single()
+      ]);
+      const prev=allConvos.length;
+      allLeads=l.data||[]; allConvos=v.data||[]; if(c.data) clinicData=c.data;
+      const sig=dataSignature();
+      if(sig!==lastSignature){ lastSignature=sig; const gotNew=allConvos.length>prev; rerenderActive(); if(gotNew) flashLiveCards(); }
+      setConn('live');
+    }catch(e){ setConn('offline'); }
+  },12000);
+}
+function stopPolling(){ if(pollTimer){clearInterval(pollTimer);pollTimer=null;} }
+function rerenderActive(){
+  if(document.getElementById('leadModal').classList.contains('open')) return;
+  renderOverview();
+  const vis=['leads','conversations','treatments'].find(t=>document.getElementById('tab-'+t).style.display!=='none');
+  if(vis==='leads') renderLeads(); else if(vis==='conversations') renderConversations(); else if(vis==='treatments') renderTreatments();
+}
+function flashLiveCards(){ document.querySelectorAll('.metric').forEach(c=>{c.classList.remove('flash');void c.offsetWidth;c.classList.add('flash');}); }
+function setConn(state){
+  const b=document.getElementById('connBadge'),t=document.getElementById('connText'); if(!b) return;
+  b.classList.remove('live','offline');
+  if(state==='live'){b.classList.add('live');t.textContent='Live';}
+  else if(state==='offline'){b.classList.add('offline');t.textContent='Reconnecting…';}
+  else t.textContent='Connecting…';
+}
+
+// ── REALTIME ──
+function subscribeRealtime(){
+  realtimeSubs.forEach(s=>supabaseClient.removeChannel(s));
+  const onLeads=(p)=>{
+    if(p.eventType==='INSERT') allLeads.unshift(p.new);
+    else if(p.eventType==='UPDATE'){const i=allLeads.findIndex(l=>l.id===p.new.id); if(i>=0) allLeads[i]=p.new; else allLeads.unshift(p.new);}
+    else if(p.eventType==='DELETE') allLeads=allLeads.filter(l=>l.id!==p.old.id);
+    lastSignature=dataSignature(); renderOverview(); if(document.getElementById('tab-leads').style.display!=='none') renderLeads();
+  };
+  const onConvo=(p)=>{ allConvos.push(p.new); lastSignature=dataSignature(); renderOverview(); if(document.getElementById('tab-conversations').style.display!=='none') renderConversations(); flashLiveCards(); };
+  const ls=supabaseClient.channel('leads-rt').on('postgres_changes',{event:'*',schema:'public',table:'leads',filter:`clinic_id=eq.${clinicId}`},onLeads).subscribe((s)=>{ if(s==='SUBSCRIBED'){realtimeOk=true;setConn('live');} });
+  const cs=supabaseClient.channel('convos-rt').on('postgres_changes',{event:'INSERT',schema:'public',table:'conversations',filter:`clinic_id=eq.${clinicId}`},onConvo).subscribe();
+  realtimeSubs=[ls,cs];
+  setTimeout(()=>{ if(!realtimeOk) setConn('live'); },4000);
+}
+
+// ── HELPERS ──
+function tempBadge(t){ if(!t) return ''; const cls=t==='hot'?'temp-hot':t==='warm'?'temp-warm':'temp-cold'; return `<span class="pill ${cls}"><span class="pdot"></span>${t}</span>`; }
+// Journey stage = WHERE the lead is in the booking process (distinct from temperature, which is how ready they are)
+function journeyOf(l){
+  if(l.lead_stage==='booked'||l.booked===true) return 'booked';
+  if(l.handoff_status==='human') return 'staff';
+  const msgs=allConvos.filter(c=>c.instagram_handle===l.instagram_handle).length;
+  return msgs>1 ? 'active' : 'new';
+}
+const JOURNEY_LABEL={new:'New',active:'In chat',booked:'Booked',staff:'With staff'};
+function sentClass(s){ return `sent-${s||'neutral'}`; }
+function riskBadge(r){ if(!r) return '—'; const c=r==='high'?'color:var(--hot)':r==='medium'?'color:var(--warm)':'color:var(--good)'; return `<span style="font-weight:600;${c}">${r}</span>`; }
+function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2600); }
+
+// Build a 14-day enquiries area chart (inline SVG, no library)
+function enquiriesChart(){
+  const days=14, today=new Date(); today.setHours(0,0,0,0);
+  const buckets=new Array(days).fill(0);
+  allConvos.filter(c=>c.sender_type==='user').forEach(c=>{
+    if(!c.timestamp) return; const d=new Date(c.timestamp); d.setHours(0,0,0,0);
+    const diff=Math.round((today-d)/86400000); if(diff>=0&&diff<days) buckets[days-1-diff]++;
+  });
+  const total=buckets.reduce((a,b)=>a+b,0);
+  const W=100,H=42,max=Math.max(...buckets,1);
+  const pts=buckets.map((v,i)=>[ (i/(days-1))*W, H-(v/max)*(H-6)-3 ]);
+  const line=pts.map((p,i)=>`${i===0?'M':'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const area=`${line} L${W},${H} L0,${H} Z`;
+  return {svg:`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c9a86a" stop-opacity="0.28"/><stop offset="100%" stop-color="#c9a86a" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${area}" fill="url(#ag)"/>
+    <path d="${line}" fill="none" stroke="#3a1b4e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    ${pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="0" fill="#3a1b4e"/>`).join('')}
+  </svg>`, total};
+}
+
+// ── OVERVIEW ──
+function renderOverview(){
+  const total=allLeads.length;
+  const aiHandled=allLeads.filter(l=>l.handoff_status==='ai').length;
+  const humanHandled=allLeads.filter(l=>l.handoff_status==='human').length;
+  const rate=total>0?Math.round((aiHandled/total)*100):0;
+  const aiMsgs=allConvos.filter(c=>c.sender_type==='ai').length;
+  const userMsgs=allConvos.filter(c=>c.sender_type==='user').length;
+  const timeSaved=Math.round(aiMsgs*2.5/60*10)/10;
+  const hotLeads=allLeads.filter(l=>l.lead_temperature==='hot').length;
+  const totalPipeline=allLeads.reduce((s,l)=>s+(l.estimated_value||clinicData?.avg_treatment_value||250),0);
+  const attention=allLeads.filter(l=>l.handoff_status==='human');
+  const counts={new:0,active:0,booked:0,staff:0}; allLeads.forEach(l=>counts[journeyOf(l)]++);
+  const maxC=Math.max(...Object.values(counts),1);
+  const sc={new:'#a39bab',active:'#2f5d85',booked:'#1c7a52',staff:'#9a6311'};
+  const sl=JOURNEY_LABEL;
+  const chart=enquiriesChart();
+
+  // ── Conversion funnel: AI auto-fills up to Booked; clinic taps Attended/Sold ──
+  const fNew = total;
+  const fWarm = allLeads.filter(l=>['warm','hot'].includes((l.lead_temperature||'').toLowerCase())).length;
+  const fHot = allLeads.filter(l=>(l.lead_temperature||'').toLowerCase()==='hot').length;
+  const fBooked = allLeads.filter(l=>l.lead_stage==='booked'||l.outcome==='sold').length;
+  const fSold = allLeads.filter(l=>l.outcome==='sold').length;
+  const fLost = allLeads.filter(l=>l.outcome==='lost').length;
+  const soldValue = allLeads.filter(l=>l.outcome==='sold').reduce((s,l)=>s+(l.estimated_value||clinicData?.avg_treatment_value||250),0);
+  const funnelSteps=[
+    {k:'New enquiry',v:fNew,c:'#a39bab'},
+    {k:'Warm',v:fWarm,c:'#9a6311'},
+    {k:'Hot',v:fHot,c:'#bb362c'},
+    {k:'Booked',v:fBooked,c:'#2f5d85'},
+    {k:'Treatment sold',v:fSold,c:'#1c7a52'}
+  ];
+  const fMax=Math.max(fNew,1);
+
+  document.getElementById('tab-overview').innerHTML = `
+    <div class="page-title">${clinicData?.clinic_name||'Your clinic'}</div>
+    <div class="page-sub">Here's how your AI receptionist is doing.</div>
+
+    <div class="hero-row">
+      <div class="hero-figure">
+        <div class="hf-top">
+          <div class="hf-label">Pipeline value</div>
+          <div class="hf-value tnum"><span class="cur">£</span>${totalPipeline.toLocaleString()}</div>
+        </div>
+        <div class="hf-foot">${total>0?`Across <b>${total}</b> ${total===1?'enquiry':'enquiries'}, with <b>${hotLeads}</b> ready to book.`:'Send a DM to your page to see it appear here.'}</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-hd"><span class="chart-title">Enquiries · last 14 days</span><span class="chart-total tnum">${chart.total} total</span></div>
+        <div class="chart-wrap">${chart.svg}</div>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><div class="metric-top"><span class="metric-label">Handled by AI</span><span class="metric-ic">${IC.ai}</span></div><div class="metric-val tnum">${rate}%</div><div class="metric-sub">${aiHandled} of ${total} enquiries</div></div>
+      <div class="metric"><div class="metric-top"><span class="metric-label">Hot leads</span><span class="metric-ic">${IC.hot}</span></div><div class="metric-val tnum">${hotLeads}</div><div class="metric-sub">ready to book now</div></div>
+      <div class="metric"><div class="metric-top"><span class="metric-label">Need attention</span><span class="metric-ic">${IC.bell}</span></div><div class="metric-val tnum">${attention.length}</div><div class="metric-sub">waiting for your team</div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-hd"><span class="panel-title">Booking pipeline</span></div>
+        <div class="funnel">
+          ${['new','active','booked','staff'].map(s=>`
+            <div class="f-step">
+              <span class="f-label">${sl[s]}</span>
+              <div class="f-bar-wrap"><div class="f-bar" style="width:${Math.round(((counts[s]||0)/maxC)*100)}%;background:${sc[s]}"></div></div>
+              <span class="f-count tnum">${counts[s]||0}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-hd"><span class="panel-title">This month at a glance</span></div>
+        <div class="stat-row"><span class="stat-lbl">AI replies sent</span><span class="stat-val tnum">${aiMsgs}</span></div>
+        <div class="stat-row"><span class="stat-lbl">Customer messages</span><span class="stat-val tnum">${userMsgs}</span></div>
+        <div class="stat-row"><span class="stat-lbl">Reply time saved</span><span class="stat-val good tnum">${timeSaved}h</span></div>
+        <div class="stat-row"><span class="stat-lbl">Passed to your team</span><span class="stat-val tnum">${humanHandled}</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hd">
+        <span class="panel-title">Conversion funnel</span>
+        ${fSold>0?`<span style="font-size:12.5px;color:var(--good);font-weight:600">£${soldValue.toLocaleString()} in treatments sold</span>`:''}
+      </div>
+      <div style="font-size:12.5px;color:var(--ink-3);margin-bottom:18px;margin-top:-8px">From first enquiry to treatment sold. The AI fills this in automatically up to Booked — you just confirm who bought.</div>
+      <div class="funnel">
+        ${funnelSteps.map((s,i)=>{
+          const prev = i>0?funnelSteps[i-1].v:null;
+          const pct = (prev && prev>0)?Math.round((s.v/prev)*100):null;
+          return `<div class="f-step">
+            <span class="f-label" style="width:96px">${s.k}</span>
+            <div class="f-bar-wrap"><div class="f-bar" style="width:${Math.round((s.v/fMax)*100)}%;background:${s.c}"></div></div>
+            <span class="f-count tnum">${s.v}</span>
+            <span style="font-size:11.5px;color:var(--muted);width:46px;text-align:right" class="tnum">${pct!==null?pct+'%':''}</span>
+          </div>`;
+        }).join('')}
+      </div>
+      ${fLost>0?`<div style="margin-top:14px;font-size:12px;color:var(--muted)">${fLost} ${fLost===1?'lead':'leads'} marked lost</div>`:''}
+    </div>
+
+    <div class="panel">
+      <div class="panel-hd">
+        <span class="panel-title">Needs your attention</span>
+        <span class="panel-action" onclick="showTab('leads',null)">View all leads →</span>
+      </div>
+      <div class="attention-list">
+        ${attention.length===0
+          ? `<div class="empty">All clear — the AI has everything covered right now.</div>`
+          : attention.slice(0,5).map(l=>`
+            <div class="a-item">
+              <div class="a-body">
+                <div class="a-handle">${l.instagram_handle||'Customer'} ${tempBadge(l.lead_temperature)}</div>
+                <div class="a-msg">${(l.last_message||'').substring(0,72)}${(l.last_message||'').length>72?'…':''}</div>
+                <div class="a-meta">£${l.estimated_value||0} est. value · ${l.last_contact?new Date(l.last_contact).toLocaleDateString('en-GB'):''}</div>
+              </div>
+              <button class="a-btn" onclick="window.open('https://www.instagram.com/direct/inbox/','_blank')">Reply on Instagram</button>
+            </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ── LEADS ──
+function renderLeads(){
+  const filtered=currentFilter==='all'?allLeads:allLeads.filter(l=>journeyOf(l)===currentFilter);
+  document.getElementById('tab-leads').innerHTML = `
+    <div class="page-title">Leads</div>
+    <div class="page-sub">Everyone who's messaged your clinic, scored and sorted.</div>
+    <div class="filter-row">
+      ${[['all','All'],['new','New'],['active','In chat'],['booked','Booked'],['staff','With staff']].map(([f,lbl])=>`<button class="fpill${currentFilter===f?' active':''}" onclick="setFilter('${f}',this)">${lbl}${f==='all'?' ('+allLeads.length+')':''}</button>`).join('')}
+    </div>
+    <div class="table-card"><div class="table-wrap"><table>
+      <thead><tr><th>Handle</th><th>Stage</th><th>Temp</th><th>Sentiment</th><th>Est. value</th><th>Last message</th><th>Outcome</th></tr></thead>
+      <tbody>
+        ${filtered.length===0
+          ? `<tr><td colspan="7"><div class="empty">${IC.inbox}<div>No leads in this view yet.</div></div></td></tr>`
+          : filtered.map(l=>`
+            <tr onclick="openLeadModal(${JSON.stringify(l).replace(/"/g,'&quot;')})">
+              <td class="td-handle" title="${l.instagram_handle}">${l.instagram_handle||'—'}</td>
+              <td><span class="badge badge-${journeyOf(l)}">${JOURNEY_LABEL[journeyOf(l)]}</span></td>
+              <td>${tempBadge(l.lead_temperature)||'—'}</td>
+              <td><span class="${sentClass(l.sentiment)}">${l.sentiment||'—'}</span></td>
+              <td class="tnum">£${l.estimated_value||0}</td>
+              <td title="${(l.last_message||'').replace(/"/g,'&quot;')}">${(l.last_message||'—').substring(0,38)}${(l.last_message||'').length>38?'…':''}</td>
+              <td>${outcomeCell(l)}</td>
+            </tr>`).join('')}
+      </tbody>
+    </table></div></div>`;
+}
+
+// One-tap outcome control, shown only once a lead is booked (or already has an outcome)
+function outcomeCell(l){
+  const isBooked = l.lead_stage==='booked' || l.booked;
+  if(!isBooked && !l.outcome) return '<span style="color:var(--muted)">—</span>';
+  if(l.outcome==='sold') return `<span class="oc-done oc-sold" onclick="event.stopPropagation();setOutcome('${l.id}',null)" title="Tap to undo">✓ Sold</span>`;
+  if(l.outcome==='lost') return `<span class="oc-done oc-lost" onclick="event.stopPropagation();setOutcome('${l.id}',null)" title="Tap to undo">Lost</span>`;
+  // booked, no outcome yet → one-tap Sold
+  return `<span class="oc-tags"><button class="oc-btn oc-sold-btn" onclick="event.stopPropagation();setOutcome('${l.id}','sold')">Sold</button><button class="oc-btn" onclick="event.stopPropagation();setOutcome('${l.id}','lost')">Lost</button></span>`;
+}
+function setFilter(f,btn){ currentFilter=f; document.querySelectorAll('.fpill').forEach(b=>b.classList.remove('active')); if(btn) btn.classList.add('active'); renderLeads(); }
+
+// ── MODAL ──
+function openLeadModal(lead){
+  document.getElementById('modalTitle').textContent=lead.instagram_handle||'Lead detail';
+  const stage=journeyOf(lead);
+  document.getElementById('modalBody').innerHTML = `
+    <div class="intel-grid">
+      <div class="intel-item"><div class="intel-label">Temperature</div><div class="intel-value">${tempBadge(lead.lead_temperature)||'—'}</div></div>
+      <div class="intel-item"><div class="intel-label">Stage</div><div class="intel-value"><span class="badge badge-${stage}">${JOURNEY_LABEL[stage]}</span></div></div>
+      <div class="intel-item"><div class="intel-label">Est. value</div><div class="intel-value tnum">£${lead.estimated_value||0}</div></div>
+      <div class="intel-item"><div class="intel-label">Sentiment</div><div class="intel-value"><span class="${sentClass(lead.sentiment)}">${lead.sentiment||'—'}</span></div></div>
+      <div class="intel-item"><div class="intel-label">Messages</div><div class="intel-value tnum">${allConvos.filter(c=>c.instagram_handle===lead.instagram_handle).length}</div></div>
+      <div class="intel-item"><div class="intel-label">Handled by</div><div class="intel-value">${lead.handoff_status==='human'?'Your team':'AI'}</div></div>
+    </div>
+    ${lead.competitor_mentioned?`<div style="background:var(--hot-bg);border:1px solid #f0c8c3;border-radius:9px;padding:13px 15px;margin-bottom:16px;font-size:13px;color:var(--hot)"><strong>Competitor mentioned:</strong> ${lead.competitor_name||'Unknown'} — ${lead.competitor_context||''}</div>`:''}
+    ${lead.staff_summary?`<div class="summary-box"><div class="summary-label">Staff summary</div>${lead.staff_summary}</div>`:''}
+    ${lead.temperature_reason?`<div style="margin-top:12px;font-size:13px;color:var(--ink-3)"><strong>Why this score:</strong> ${lead.temperature_reason}</div>`:''}
+    <div style="margin-top:18px;display:flex;gap:9px;flex-wrap:wrap">
+      <button class="btn-primary" onclick="openConvoFromModal('${lead.instagram_handle}');closeModal()">View conversation</button>
+      <button class="btn-secondary" onclick="window.open('https://www.instagram.com/direct/inbox/','_blank')">Reply on Instagram</button>
+      ${(lead.lead_stage==='booked'||lead.booked)?`<button class="btn-secondary" onclick="markBooked('${lead.id}',false)">Booked — undo</button>`:`<button class="btn-good" onclick="markBooked('${lead.id}',true)">Mark as booked</button>`}
+    </div>
+    ${(lead.lead_stage==='booked'||lead.booked||lead.outcome)?`
+    <div style="margin-top:14px;padding-top:16px;border-top:1px solid var(--line)">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;margin-bottom:10px">Outcome${lead.outcome?` · currently: <span style="color:var(--ink-2)">${OUTCOME_LABEL[lead.outcome]||lead.outcome}</span>`:''}</div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        <button class="btn-good" style="${lead.outcome==='sold'?'border-color:var(--good)':''}" onclick="setOutcome('${lead.id}','sold')">Treatment sold</button>
+        <button class="btn-secondary" onclick="setOutcome('${lead.id}','lost')">Lost</button>
+        ${lead.outcome?`<button class="btn-secondary" onclick="setOutcome('${lead.id}',null)">Clear</button>`:''}
+      </div>
+    </div>`:''}`;
+  document.getElementById('leadModal').classList.add('open');
+}
+function closeModal(){ document.getElementById('leadModal').classList.remove('open'); }
+async function markBooked(leadId,booked){
+  try{
+    const {error}=await supabaseClient.from('leads').update({lead_stage:booked?'booked':'new_lead'}).eq('id',leadId);
+    if(error){ toast('Could not update — '+error.message); return; }
+    const lead=allLeads.find(l=>String(l.id)===String(leadId)); if(lead) lead.lead_stage=booked?'booked':'new_lead';
+    lastSignature=dataSignature(); closeModal(); renderOverview(); renderLeads();
+    toast(booked?'Marked as booked':'Booking undone');
+  }catch(e){ toast('Could not update — '+e.message); }
+}
+const OUTCOME_LABEL={sold:'Treatment sold',lost:'Lost'};
+async function setOutcome(leadId,outcome){
+  try{
+    const {data:{user}}=await supabaseClient.auth.getUser();
+    const {error}=await supabaseClient.from('leads')
+      .update({outcome:outcome, outcome_changed_at:outcome?new Date().toISOString():null, outcome_changed_by:outcome?(user?user.id:null):null})
+      .eq('id',leadId);
+    if(error){ toast('Could not update — '+error.message); return; }
+    const lead=allLeads.find(l=>String(l.id)===String(leadId)); if(lead) lead.outcome=outcome;
+    lastSignature=dataSignature(); closeModal(); renderOverview(); renderLeads();
+    toast(outcome?(OUTCOME_LABEL[outcome]+' ✓'):'Outcome cleared');
+  }catch(e){ toast('Could not update — '+e.message); }
+}
+document.getElementById('leadModal').addEventListener('click', e=>{ if(e.target===document.getElementById('leadModal')) closeModal(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+function openConvoFromModal(handle){ showTab('conversations',null); setTimeout(()=>selectConvo(handle),50); }
+
+// ── CONVERSATIONS ──
+function renderConversations(){
+  const handles=[...new Set(allConvos.map(c=>c.instagram_handle).filter(Boolean))];
+  const el=document.getElementById('tab-conversations');
+  const sidebar=handles.length===0
+    ? `<div class="empty" style="padding:30px">${IC.chat}<div>No conversations yet.</div></div>`
+    : handles.map(h=>{
+        const msgs=allConvos.filter(c=>c.instagram_handle===h); const last=msgs[msgs.length-1];
+        const lead=allLeads.find(l=>l.instagram_handle===h); const temp=lead?.lead_temperature;
+        return `<div class="conv-item${activeConvoHandle===h?' active':''}" onclick="selectConvo('${h}')">
+          <div class="conv-item-top"><div class="conv-item-handle">${h}</div><div class="conv-item-temp">${temp?tempBadge(temp):''}</div></div>
+          <div class="conv-item-preview">${(last?.message_text||'').substring(0,40)}${(last?.message_text||'').length>40?'…':''}</div>
+          <div class="conv-item-time tnum">${last?.timestamp?new Date(last.timestamp).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}):''}</div>
+        </div>`;
+      }).join('');
+  const main=activeConvoHandle?buildConvoMain(activeConvoHandle):`<div class="conv-empty">${IC.chat}<div>Select a conversation to read it.</div></div>`;
+  el.innerHTML = `<div class="page-title">Conversations</div><div class="page-sub">Every chat your AI has handled, end to end.</div>
+    <div class="conv-layout"><div class="conv-sidebar"><div class="conv-sidebar-hd">Conversations (${handles.length})</div>${sidebar}</div><div class="conv-main" id="convMain">${main}</div></div>`;
+}
+function buildConvoMain(handle){
+  const msgs=allConvos.filter(c=>c.instagram_handle===handle); const lead=allLeads.find(l=>l.instagram_handle===handle);
+  return `<div class="conv-hd"><div class="conv-hd-top"><div class="conv-hd-handle">${handle}</div>
+    <div style="display:flex;gap:8px;align-items:center">${tempBadge(lead?.lead_temperature)||''}<span class="badge badge-${lead?journeyOf(lead):'new'}">${lead?JOURNEY_LABEL[journeyOf(lead)]:'New'}</span></div></div>
+    <div class="conv-hd-meta">${msgs.length} messages · Est. value £${lead?.estimated_value||0} · AI ${lead?.ai_active?'active':'paused'}</div></div>
+    <div class="conv-messages" id="msgList">
+      ${msgs.map(m=>`<div class="msg-row ${m.sender_type}"><div><div class="msg-bubble">${m.message_text||''}</div>
+        <div class="msg-time">${m.sender_type==='ai'?'AI':m.sender_type==='staff'?'Staff':'Customer'} · ${m.timestamp?new Date(m.timestamp).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):''}</div></div></div>`).join('')}
+    </div>`;
+}
+function selectConvo(handle){ activeConvoHandle=handle; renderConversations(); setTimeout(()=>{const el=document.getElementById('msgList');if(el)el.scrollTop=el.scrollHeight;},50); }
+
+// ── TREATMENTS ──
+function renderTreatments(){
+  document.getElementById('tab-treatments').innerHTML = `
+    <div class="page-title">Treatments</div>
+    <div class="treatments-note">These are the treatments your AI quotes from for <strong>${clinicData?.clinic_name||'your clinic'}</strong>. Update a price in your database and the AI uses it on the very next message.</div>
+    <div class="treatments-grid">
+      ${allTreatments.length===0
+        ? `<div class="empty">${IC.inbox}<div>No treatments set up yet.</div></div>`
+        : allTreatments.map(t=>`
+          <div class="treatment-card">
+            <div class="topline"></div>
+            <div class="treatment-name">${t.treatment_name}</div>
+            <div class="treatment-price tnum">£${t.price_from||0}${t.price_to&&t.price_to!==t.price_from?' – £'+t.price_to:''}</div>
+            <div class="treatment-meta">
+              ${t.duration_mins?`${t.duration_mins} mins<br>`:''}
+              ${t.recovery_time?`Recovery: ${t.recovery_time}<br>`:''}
+              ${t.description?`<br>${t.description}<br>`:''}
+              ${t.faq?`<br><strong>FAQ:</strong> ${t.faq}`:''}
+              ${t.contraindications?`<br><br><span style="color:var(--hot)">⚠ ${t.contraindications}</span>`:''}
+            </div>
+          </div>`).join('')}
+    </div>`;
+}
+
+// ── TABS ──
+function showTab(name,btn){
+  ['overview','leads','conversations','treatments'].forEach(t=>{
+    const el=document.getElementById('tab-'+t);
+    el.style.display=t===name?'block':'none';
+    if(t===name){ el.classList.remove('tab-enter'); void el.offsetWidth; el.classList.add('tab-enter'); }
+  });
+  // sidebar active state
+  document.querySelectorAll('.sb-link').forEach((b,i)=>b.classList.toggle('active', ['overview','leads','conversations','treatments'][i]===name));
+  document.querySelectorAll('.mnav button').forEach((b,i)=>b.classList.toggle('active', ['overview','leads','conversations','treatments'][i]===name));
+}
+</script>
+</body>
+</html>
