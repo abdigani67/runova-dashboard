@@ -197,6 +197,12 @@ tr:last-child td{border-bottom:none}
 tbody tr{cursor:pointer;transition:background .1s}
 tbody tr:hover td{background:#fcfbfd}
 .td-handle{font-weight:600;color:var(--ink)}
+/* Hot + waiting-for-staff = highest priority: gold left accent + light gold tint */
+.lead-priority td{background:#fdf7ea}
+.lead-priority td:first-child{box-shadow:inset 3px 0 0 0 #d9a94e}
+tbody tr.lead-priority:hover td{background:#fbf0d6}
+/* Relative "time ago" under the last message */
+.time-ago{font-size:11px;color:var(--muted);margin-top:2px;display:block}
 .oc-tags{display:inline-flex;gap:6px;align-items:center}
 .oc-btn{background:var(--surface);color:var(--ink-2);border:1px solid var(--line);padding:4px 11px;border-radius:7px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .13s;white-space:nowrap}
 .oc-btn:hover{border-color:var(--gold);background:var(--bg)}
@@ -422,7 +428,7 @@ async function startApp(){
   if(!ok) return;
   await loadAllData();
   renderOverview(); renderLeads(); renderConversations(); renderTreatments();
-  subscribeRealtime(); startPolling();
+  subscribeRealtime(); startPolling(); startTimeAgo();
 }
 
 // Find the logged-in user's clinic. Tries the my_clinic_id() helper first,
@@ -521,6 +527,37 @@ const JOURNEY_LABEL={new:'New',active:'In chat',booked:'Booked',staff:'With staf
 function sentClass(s){ return `sent-${s||'neutral'}`; }
 function riskBadge(r){ if(!r) return '—'; const c=r==='high'?'color:var(--hot)':r==='medium'?'color:var(--warm)':'color:var(--good)'; return `<span style="font-weight:600;${c}">${r}</span>`; }
 function toast(msg,dur){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),dur||2600); }
+
+// Human-friendly "time ago" from a timestamp, e.g. "just now", "5 mins ago", "2h ago", "3d ago"
+function timeAgo(ts){
+  if(!ts) return '';
+  const then=new Date(ts).getTime(); if(isNaN(then)) return '';
+  const secs=Math.max(0,Math.round((Date.now()-then)/1000));
+  if(secs<45) return 'just now';
+  const mins=Math.round(secs/60);
+  if(mins<60) return mins+(mins===1?' min ago':' mins ago');
+  const hrs=Math.round(mins/60);
+  if(hrs<24) return hrs+'h ago';
+  const days=Math.round(hrs/24);
+  if(days<7) return days+'d ago';
+  const wks=Math.round(days/7);
+  if(wks<5) return wks+'w ago';
+  return new Date(ts).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+}
+// Refresh every rendered "time ago" label in place (no full re-render needed)
+function refreshTimeAgo(){ document.querySelectorAll('.time-ago[data-ts]').forEach(el=>{ const ts=el.getAttribute('data-ts'); el.textContent=ts?timeAgo(ts):''; }); }
+let timeAgoTimer=null;
+function startTimeAgo(){ if(timeAgoTimer) return; timeAgoTimer=setInterval(refreshTimeAgo,60000); }
+
+// Show a readable name: prefer display_name; if the handle is a bare numeric IG ID,
+// label it "IG User ####" (last 4 digits) so it doesn't read like a phone number.
+function displayHandle(l){
+  if(l.display_name && l.display_name.trim()) return l.display_name.trim();
+  const h=(l.instagram_handle||'').trim();
+  if(!h) return '—';
+  if(/^\d+$/.test(h)) return 'IG User '+h.slice(-4);
+  return h;
+}
 
 // Build a 14-day enquiries area chart (inline SVG, no library)
 function enquiriesChart(){
@@ -670,27 +707,36 @@ function renderOverview(){
 // ── LEADS ──
 function renderLeads(){
   const filtered=currentFilter==='all'?allLeads:allLeads.filter(l=>journeyOf(l)===currentFilter);
+  // Count leads per stage so each filter pill can show a live tally
+  const stageCounts={new:0,active:0,booked:0,staff:0};
+  allLeads.forEach(l=>{ stageCounts[journeyOf(l)]++; });
   document.getElementById('tab-leads').innerHTML = `
     <div class="page-title">Leads</div>
     <div class="page-sub">Everyone who's messaged your clinic, scored and sorted.</div>
     <div class="filter-row">
-      ${[['all','All'],['new','New'],['active','In chat'],['booked','Booked'],['staff','With staff']].map(([f,lbl])=>`<button class="fpill${currentFilter===f?' active':''}" onclick="setFilter('${f}',this)">${lbl}${f==='all'?' ('+allLeads.length+')':''}</button>`).join('')}
+      ${[['all','All'],['new','New'],['active','In chat'],['booked','Booked'],['staff','With staff']].map(([f,lbl])=>{
+        const n=f==='all'?allLeads.length:(stageCounts[f]||0);
+        return `<button class="fpill${currentFilter===f?' active':''}" onclick="setFilter('${f}',this)">${lbl} (${n})</button>`;
+      }).join('')}
     </div>
     <div class="table-card"><div class="table-wrap"><table>
       <thead><tr><th>Handle</th><th>Stage</th><th>Temp</th><th>Sentiment</th><th>Est. value</th><th>Last message</th><th>Outcome</th></tr></thead>
       <tbody>
         ${filtered.length===0
           ? `<tr><td colspan="7"><div class="empty">${IC.inbox}<div>No leads in this view yet.</div></div></td></tr>`
-          : filtered.map(l=>`
-            <tr onclick="openLeadModal(${JSON.stringify(l).replace(/"/g,'&quot;')})">
-              <td class="td-handle" title="${l.instagram_handle}">${l.instagram_handle||'—'}</td>
+          : filtered.map(l=>{
+            const priority=(l.lead_temperature==='hot' && l.handoff_status==='human');
+            return `
+            <tr class="${priority?'lead-priority':''}" onclick="openLeadModal(${JSON.stringify(l).replace(/"/g,'&quot;')})">
+              <td class="td-handle" title="${(l.instagram_handle||'').replace(/"/g,'&quot;')}">${displayHandle(l)}</td>
               <td><span class="badge badge-${journeyOf(l)}">${JOURNEY_LABEL[journeyOf(l)]}</span>${journeyOf(l)==='staff'?`<button class="pill-handback" onclick="event.stopPropagation();handBackToAI('${l.id}',this)">Hand back to AI</button>`:''}</td>
               <td>${tempBadge(l.lead_temperature)||'—'}</td>
               <td><span class="${sentClass(l.sentiment)}">${l.sentiment||'—'}</span></td>
               <td class="tnum">£${l.estimated_value||0}</td>
-              <td title="${(l.last_message||'').replace(/"/g,'&quot;')}">${(l.last_message||'—').substring(0,38)}${(l.last_message||'').length>38?'…':''}</td>
+              <td title="${(l.last_message||'').replace(/"/g,'&quot;')}">${(l.last_message||'—').substring(0,38)}${(l.last_message||'').length>38?'…':''}<span class="time-ago tnum" data-ts="${l.last_contact||''}">${timeAgo(l.last_contact)}</span></td>
               <td>${outcomeCell(l)}</td>
-            </tr>`).join('')}
+            </tr>`;
+          }).join('')}
       </tbody>
     </table></div></div>`;
 }
@@ -708,7 +754,7 @@ function setFilter(f,btn){ currentFilter=f; document.querySelectorAll('.fpill').
 
 // ── MODAL ──
 function openLeadModal(lead){
-  document.getElementById('modalTitle').textContent=lead.instagram_handle||'Lead detail';
+  const dh=displayHandle(lead); document.getElementById('modalTitle').textContent=(dh&&dh!=='—')?dh:'Lead detail';
   const stage=journeyOf(lead);
   document.getElementById('modalBody').innerHTML = `
     <div class="intel-grid">
