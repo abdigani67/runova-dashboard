@@ -466,25 +466,36 @@ function dataSignature(){
 }
 
 // ── LIVE DATA: polling ──
+// Re-fetch everything and re-render if anything changed. Used by the interval
+// poll (fallback) and fired immediately when the tab regains focus so the view
+// is never stale after switching away. Realtime handles the sub-second updates.
+let refreshing=false;
+async function refreshData(){
+  if(!clinicId || refreshing) return;
+  refreshing=true;
+  try{
+    const [l,v,c]=await Promise.all([
+      supabaseClient.from('leads').select('*').eq('clinic_id',clinicId).order('last_contact',{ascending:false}),
+      supabaseClient.from('conversations').select('*').eq('clinic_id',clinicId).order('timestamp',{ascending:true}),
+      supabaseClient.from('clinics').select('*').eq('id',clinicId).single()
+    ]);
+    const prev=allConvos.length;
+    allLeads=l.data||[]; allConvos=v.data||[]; if(c.data) clinicData=c.data;
+    const sig=dataSignature();
+    if(sig!==lastSignature){ lastSignature=sig; const gotNew=allConvos.length>prev; rerenderActive(); if(gotNew) flashLiveCards(); }
+    setConn('live');
+  }catch(e){ setConn('offline'); }
+  finally{ refreshing=false; }
+}
 function startPolling(){
   stopPolling();
-  pollTimer=setInterval(async()=>{
-    if(document.hidden || !clinicId) return;
-    try{
-      const [l,v,c]=await Promise.all([
-        supabaseClient.from('leads').select('*').eq('clinic_id',clinicId).order('last_contact',{ascending:false}),
-        supabaseClient.from('conversations').select('*').eq('clinic_id',clinicId).order('timestamp',{ascending:true}),
-        supabaseClient.from('clinics').select('*').eq('id',clinicId).single()
-      ]);
-      const prev=allConvos.length;
-      allLeads=l.data||[]; allConvos=v.data||[]; if(c.data) clinicData=c.data;
-      const sig=dataSignature();
-      if(sig!==lastSignature){ lastSignature=sig; const gotNew=allConvos.length>prev; rerenderActive(); if(gotNew) flashLiveCards(); }
-      setConn('live');
-    }catch(e){ setConn('offline'); }
-  },12000);
+  pollTimer=setInterval(()=>{ if(document.hidden) return; refreshData(); },12000);
 }
 function stopPolling(){ if(pollTimer){clearInterval(pollTimer);pollTimer=null;} }
+// Refresh the instant the tab becomes visible / regains focus, instead of
+// waiting up to 12s for the next poll tick.
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) refreshData(); });
+window.addEventListener('focus',()=>refreshData());
 function rerenderActive(){
   if(document.getElementById('leadModal').classList.contains('open')) return;
   renderOverview();
