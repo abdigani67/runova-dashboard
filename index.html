@@ -182,6 +182,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--i
 .pill-handback{display:inline-flex;align-items:center;gap:4px;margin-left:7px;padding:3px 11px;border-radius:999px;font-size:11px;font-weight:600;font-family:inherit;border:1px solid var(--line);background:var(--surface);color:var(--aubergine-700);cursor:pointer;vertical-align:middle;white-space:nowrap;transition:border-color .14s,background .14s,color .14s}
 .pill-handback:hover{border-color:var(--gold);background:var(--bg)}
 .pill-handback:disabled{opacity:.55;cursor:default}
+/* Stage cell holds the badge + "Hand back to AI" pill — don't clip it */
+.td-stage{max-width:none;overflow:visible;white-space:nowrap}
 
 /* ───── LEADS TABLE ───── */
 .filter-row{display:flex;gap:7px;margin-bottom:16px;flex-wrap:wrap}
@@ -729,7 +731,7 @@ function renderLeads(){
             return `
             <tr class="${priority?'lead-priority':''}" onclick="openLeadModal(${JSON.stringify(l).replace(/"/g,'&quot;')})">
               <td class="td-handle" title="${(l.instagram_handle||'').replace(/"/g,'&quot;')}">${displayHandle(l)}</td>
-              <td><span class="badge badge-${journeyOf(l)}">${JOURNEY_LABEL[journeyOf(l)]}</span>${journeyOf(l)==='staff'?`<button class="pill-handback" onclick="event.stopPropagation();handBackToAI('${l.id}',this)">Hand back to AI</button>`:''}</td>
+              <td class="td-stage"><span class="badge badge-${journeyOf(l)}">${JOURNEY_LABEL[journeyOf(l)]}</span>${journeyOf(l)==='staff'?`<button class="pill-handback" onclick="event.stopPropagation();handBackToAI('${l.id}',this)">Hand back to AI</button>`:''}</td>
               <td>${tempBadge(l.lead_temperature)||'—'}</td>
               <td><span class="${sentClass(l.sentiment)}">${l.sentiment||'—'}</span></td>
               <td class="tnum">£${l.estimated_value||0}</td>
