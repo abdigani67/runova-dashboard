@@ -276,6 +276,22 @@ tbody tr.lead-priority:hover td{background:#fbf0d6}
 .treatment-name{font-size:15.5px;font-weight:600;margin-bottom:4px}
 .treatment-price{font-family:'Fraunces',serif;font-size:23px;font-weight:600;margin-bottom:12px;letter-spacing:-.01em}
 .treatment-meta{font-size:12.5px;color:var(--ink-3);line-height:1.7}
+/* Treatments management: add button, inactive cards, per-card actions, form */
+.tbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.btn-add{display:inline-flex;align-items:center;gap:7px;background:var(--aubergine);color:#fff;border:none;padding:10px 16px;border-radius:9px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s;flex-shrink:0}
+.btn-add:hover{background:var(--aubergine-700)}
+.btn-add svg{width:15px;height:15px;stroke:#fff;stroke-width:2.4}
+.treatment-card.inactive{opacity:.6;background:var(--bg)}
+.tc-badge{display:inline-block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-3);background:var(--line-2);border:1px solid var(--line);padding:2px 7px;border-radius:6px;margin-left:6px;vertical-align:middle}
+.tc-actions{display:flex;gap:7px;margin-top:14px;padding-top:13px;border-top:1px solid var(--line-2)}
+.tc-btn{background:var(--surface);color:var(--ink-2);border:1px solid var(--line);padding:6px 12px;border-radius:7px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:border-color .13s,background .13s,color .13s}
+.tc-btn:hover{border-color:var(--gold);background:var(--bg)}
+.tc-btn.danger:hover{border-color:var(--hot);color:var(--hot);background:var(--hot-bg)}
+.tc-btn:disabled{opacity:.55;cursor:default}
+.field textarea{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;outline:none;background:var(--surface);resize:vertical;min-height:60px;transition:border-color .15s,box-shadow .15s}
+.field textarea:focus{border-color:var(--aubergine-700);box-shadow:0 0 0 3px rgba(74,37,99,.1)}
+.tm-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:520px){.tm-row{grid-template-columns:1fr}}
 
 /* ───── MISC ───── */
 .loader{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:320px;gap:14px}
@@ -331,6 +347,33 @@ tbody tr.lead-priority:hover td{background:#fbf0d6}
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- TREATMENT ADD/EDIT MODAL -->
+<div class="modal-overlay" id="treatmentModal">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title" id="tmTitle">Add treatment</div>
+      <button class="modal-close" onclick="closeTreatmentModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="login-err" id="tmErr"></div>
+      <div class="field"><label>Treatment name *</label><input id="tmName" type="text" placeholder="e.g. Lip filler — 1ml"></div>
+      <div class="tm-row">
+        <div class="field"><label>Price from (£)</label><input id="tmPriceFrom" type="number" min="0" inputmode="numeric" placeholder="150"></div>
+        <div class="field"><label>Price to (£)</label><input id="tmPriceTo" type="number" min="0" inputmode="numeric" placeholder="optional"></div>
+        <div class="field"><label>Duration (mins)</label><input id="tmDuration" type="number" min="0" inputmode="numeric" placeholder="30"></div>
+      </div>
+      <div class="field"><label>Recovery time</label><input id="tmRecovery" type="text" placeholder="e.g. 24–48 hours"></div>
+      <div class="field"><label>Description</label><textarea id="tmDesc" placeholder="What the treatment involves…"></textarea></div>
+      <div class="field"><label>FAQ</label><textarea id="tmFaq" placeholder="Common questions the AI should be able to answer…"></textarea></div>
+      <div class="field"><label>Contraindications ⚠</label><textarea id="tmContra" placeholder="Who should NOT have this treatment — the AI will use this to keep patients safe."></textarea></div>
+      <div style="display:flex;gap:9px;margin-top:6px">
+        <button class="btn-primary" id="tmSaveBtn" onclick="saveTreatment()">Save treatment</button>
+        <button class="btn-secondary" onclick="closeTreatmentModal()">Cancel</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -455,7 +498,7 @@ async function loadAllData(){
     supabaseClient.from('clinics').select('*').eq('id',clinicId).single(),
     supabaseClient.from('leads').select('*').eq('clinic_id',clinicId).order('last_contact',{ascending:false}),
     supabaseClient.from('conversations').select('*').eq('clinic_id',clinicId).order('timestamp',{ascending:true}),
-    supabaseClient.from('treatments').select('*').eq('clinic_id',clinicId).eq('active',true)
+    supabaseClient.from('treatments').select('*').eq('clinic_id',clinicId).order('active',{ascending:false}).order('treatment_name',{ascending:true})
   ]);
   clinicData=c.data; allLeads=l.data||[]; allConvos=v.data||[]; allTreatments=t.data||[];
   if(clinicData) document.getElementById('sbClinic').textContent=clinicData.clinic_name;
@@ -498,6 +541,7 @@ document.addEventListener('visibilitychange',()=>{ if(!document.hidden) refreshD
 window.addEventListener('focus',()=>refreshData());
 function rerenderActive(){
   if(document.getElementById('leadModal').classList.contains('open')) return;
+  if(document.getElementById('treatmentModal').classList.contains('open')) return;
   renderOverview();
   const vis=['leads','conversations','treatments'].find(t=>document.getElementById('tab-'+t).style.display!=='none');
   if(vis==='leads') renderLeads(); else if(vis==='conversations') renderConversations(); else if(vis==='treatments') renderTreatments();
@@ -540,6 +584,8 @@ const JOURNEY_LABEL={new:'New',active:'In chat',booked:'Booked',staff:'With staf
 function sentClass(s){ return `sent-${s||'neutral'}`; }
 function riskBadge(r){ if(!r) return '—'; const c=r==='high'?'color:var(--hot)':r==='medium'?'color:var(--warm)':'color:var(--good)'; return `<span style="font-weight:600;${c}">${r}</span>`; }
 function toast(msg,dur){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),dur||2600); }
+// Escape user-entered text before injecting as HTML (treatments are now client-editable)
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 // Human-friendly "time ago" from a timestamp, e.g. "just now", "5 mins ago", "2h ago", "3d ago"
 function timeAgo(ts){
@@ -853,7 +899,8 @@ async function setOutcome(leadId,outcome){
   }catch(e){ toast('Could not update — '+e.message); }
 }
 document.getElementById('leadModal').addEventListener('click', e=>{ if(e.target===document.getElementById('leadModal')) closeModal(); });
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+document.getElementById('treatmentModal').addEventListener('click', e=>{ if(e.target===document.getElementById('treatmentModal')) closeTreatmentModal(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeModal(); closeTreatmentModal(); } });
 function openConvoFromModal(handle){ showTab('conversations',null); setTimeout(()=>selectConvo(handle),50); }
 
 // ── CONVERSATIONS ──
@@ -890,25 +937,94 @@ function selectConvo(handle){ activeConvoHandle=handle; renderConversations(); s
 // ── TREATMENTS ──
 function renderTreatments(){
   document.getElementById('tab-treatments').innerHTML = `
-    <div class="page-title">Treatments</div>
-    <div class="treatments-note">These are the treatments your AI quotes from for <strong>${clinicData?.clinic_name||'your clinic'}</strong>. Update a price in your database and the AI uses it on the very next message.</div>
+    <div class="tbar">
+      <div>
+        <div class="page-title">Treatments</div>
+        <div class="treatments-note" style="margin-bottom:0">These are the treatments your AI quotes from for <strong>${esc(clinicData?.clinic_name||'your clinic')}</strong>. Changes go live on the very next message.</div>
+      </div>
+      <button class="btn-add" onclick="openTreatmentModal()"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>Add treatment</button>
+    </div>
     <div class="treatments-grid">
       ${allTreatments.length===0
-        ? `<div class="empty">${IC.inbox}<div>No treatments set up yet.</div></div>`
+        ? `<div class="empty">${IC.inbox}<div>No treatments yet — add your first one.</div></div>`
         : allTreatments.map(t=>`
-          <div class="treatment-card">
+          <div class="treatment-card${t.active===false?' inactive':''}">
             <div class="topline"></div>
-            <div class="treatment-name">${t.treatment_name}</div>
+            <div class="treatment-name">${esc(t.treatment_name)}${t.active===false?'<span class="tc-badge">Inactive</span>':''}</div>
             <div class="treatment-price tnum">£${t.price_from||0}${t.price_to&&t.price_to!==t.price_from?' – £'+t.price_to:''}</div>
             <div class="treatment-meta">
               ${t.duration_mins?`${t.duration_mins} mins<br>`:''}
-              ${t.recovery_time?`Recovery: ${t.recovery_time}<br>`:''}
-              ${t.description?`<br>${t.description}<br>`:''}
-              ${t.faq?`<br><strong>FAQ:</strong> ${t.faq}`:''}
-              ${t.contraindications?`<br><br><span style="color:var(--hot)">⚠ ${t.contraindications}</span>`:''}
+              ${t.recovery_time?`Recovery: ${esc(t.recovery_time)}<br>`:''}
+              ${t.description?`<br>${esc(t.description)}<br>`:''}
+              ${t.faq?`<br><strong>FAQ:</strong> ${esc(t.faq)}`:''}
+              ${t.contraindications?`<br><br><span style="color:var(--hot)">⚠ ${esc(t.contraindications)}</span>`:''}
+            </div>
+            <div class="tc-actions">
+              <button class="tc-btn" onclick="openTreatmentModal('${t.id}')">Edit</button>
+              ${t.active===false
+                ? `<button class="tc-btn" onclick="setTreatmentActive('${t.id}',true)">Reactivate</button>`
+                : `<button class="tc-btn danger" onclick="setTreatmentActive('${t.id}',false)">Deactivate</button>`}
             </div>
           </div>`).join('')}
     </div>`;
+}
+
+// ── TREATMENTS: add / edit / soft-delete ──
+let editingTreatmentId=null;
+function tmField(id){ return document.getElementById(id); }
+function openTreatmentModal(id){
+  editingTreatmentId=id||null;
+  const t=id?allTreatments.find(x=>String(x.id)===String(id)):null;
+  tmField('tmTitle').textContent=t?'Edit treatment':'Add treatment';
+  tmField('tmName').value=t?.treatment_name||'';
+  tmField('tmPriceFrom').value=(t&&t.price_from!=null)?t.price_from:'';
+  tmField('tmPriceTo').value=(t&&t.price_to!=null)?t.price_to:'';
+  tmField('tmDuration').value=(t&&t.duration_mins!=null)?t.duration_mins:'';
+  tmField('tmRecovery').value=t?.recovery_time||'';
+  tmField('tmDesc').value=t?.description||'';
+  tmField('tmFaq').value=t?.faq||'';
+  tmField('tmContra').value=t?.contraindications||'';
+  const err=tmField('tmErr'); err.style.display='none'; err.textContent='';
+  tmField('tmSaveBtn').disabled=false;
+  document.getElementById('treatmentModal').classList.add('open');
+  setTimeout(()=>tmField('tmName').focus(),50);
+}
+function closeTreatmentModal(){ document.getElementById('treatmentModal').classList.remove('open'); }
+function tmNum(id){ const v=tmField(id).value.trim(); if(v==='') return null; const n=Math.round(Number(v)); return (isNaN(n)||n<0)?NaN:n; }
+async function saveTreatment(){
+  const err=tmField('tmErr');
+  const name=tmField('tmName').value.trim();
+  if(!name){ err.textContent='Treatment name is required.'; err.style.display='block'; tmField('tmName').focus(); return; }
+  const price_from=tmNum('tmPriceFrom'), price_to=tmNum('tmPriceTo'), duration_mins=tmNum('tmDuration');
+  if([price_from,price_to,duration_mins].some(v=>Number.isNaN(v))){ err.textContent='Prices and duration must be valid, non-negative numbers.'; err.style.display='block'; return; }
+  const payload={ treatment_name:name, price_from, price_to, duration_mins,
+    recovery_time:tmField('tmRecovery').value.trim(), description:tmField('tmDesc').value.trim(),
+    faq:tmField('tmFaq').value.trim(), contraindications:tmField('tmContra').value.trim() };
+  const btn=tmField('tmSaveBtn'); btn.disabled=true;
+  try{
+    if(editingTreatmentId){
+      const {data,error}=await supabaseClient.from('treatments').update(payload).eq('id',editingTreatmentId).select().single();
+      if(error){ err.textContent='Could not save — '+error.message; err.style.display='block'; btn.disabled=false; return; }
+      const i=allTreatments.findIndex(x=>String(x.id)===String(editingTreatmentId)); if(i>=0&&data) allTreatments[i]=data;
+      toast('Treatment updated ✓', 2000);
+    }else{
+      const {data,error}=await supabaseClient.from('treatments').insert({...payload, clinic_id:clinicId, active:true}).select().single();
+      if(error){ err.textContent='Could not add — '+error.message; err.style.display='block'; btn.disabled=false; return; }
+      if(data) allTreatments.unshift(data);
+      toast('Treatment added ✓', 2000);
+    }
+    closeTreatmentModal(); renderTreatments();
+  }catch(e){ err.textContent='Could not save — '+e.message; err.style.display='block'; btn.disabled=false; }
+}
+async function setTreatmentActive(id, active){
+  if(!active && !confirm('Deactivate this treatment? Your AI will stop quoting it. You can reactivate it any time.')) return;
+  try{
+    const {error}=await supabaseClient.from('treatments').update({active}).eq('id',id);
+    if(error){ toast('Could not update — '+error.message); return; }
+    const t=allTreatments.find(x=>String(x.id)===String(id)); if(t) t.active=active;
+    renderTreatments();
+    toast(active?'Treatment reactivated ✓':'Treatment deactivated', 2000);
+  }catch(e){ toast('Could not update — '+e.message); }
 }
 
 // ── TABS ──
