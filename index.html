@@ -562,6 +562,18 @@ function refreshTimeAgo(){ document.querySelectorAll('.time-ago[data-ts]').forEa
 let timeAgoTimer=null;
 function startTimeAgo(){ if(timeAgoTimer) return; timeAgoTimer=setInterval(refreshTimeAgo,60000); }
 
+// The lead's last_contact column is stale (frozen at creation), so derive the
+// real "last message" time from the most recent conversation for this handle.
+function lastMessageTime(l){
+  let bestMs=0, bestRaw=null;
+  for(const c of allConvos){
+    if(c.instagram_handle!==l.instagram_handle || !c.timestamp) continue;
+    const ms=new Date(c.timestamp).getTime();
+    if(!isNaN(ms) && ms>bestMs){ bestMs=ms; bestRaw=c.timestamp; }
+  }
+  return bestRaw || l.last_contact || l.updated_at || null;
+}
+
 // Show a readable name: prefer display_name; if the handle is a bare numeric IG ID,
 // label it "IG User ####" (last 4 digits) so it doesn't read like a phone number.
 function displayHandle(l){
@@ -719,7 +731,9 @@ function renderOverview(){
 
 // ── LEADS ──
 function renderLeads(){
-  const filtered=currentFilter==='all'?allLeads:allLeads.filter(l=>journeyOf(l)===currentFilter);
+  const filtered=(currentFilter==='all'?allLeads.slice():allLeads.filter(l=>journeyOf(l)===currentFilter))
+    // Sort by real last-message time (last_contact is stale), most recent first
+    .sort((a,b)=>((lastMessageTime(b)?new Date(lastMessageTime(b)).getTime():0)-(lastMessageTime(a)?new Date(lastMessageTime(a)).getTime():0)));
   // Count leads per stage so each filter pill can show a live tally
   const stageCounts={new:0,active:0,booked:0,staff:0};
   allLeads.forEach(l=>{ stageCounts[journeyOf(l)]++; });
@@ -746,7 +760,7 @@ function renderLeads(){
               <td>${tempBadge(l.lead_temperature)||'—'}</td>
               <td><span class="${sentClass(l.sentiment)}">${l.sentiment||'—'}</span></td>
               <td class="tnum">£${l.estimated_value||0}</td>
-              <td title="${(l.last_message||'').replace(/"/g,'&quot;')}">${(l.last_message||'—').substring(0,38)}${(l.last_message||'').length>38?'…':''}<span class="time-ago tnum" data-ts="${l.last_contact||''}">${timeAgo(l.last_contact)}</span></td>
+              <td title="${(l.last_message||'').replace(/"/g,'&quot;')}">${(l.last_message||'—').substring(0,38)}${(l.last_message||'').length>38?'…':''}<span class="time-ago tnum" data-ts="${lastMessageTime(l)||''}">${timeAgo(lastMessageTime(l))}</span></td>
               <td>${outcomeCell(l)}</td>
             </tr>`;
           }).join('')}
