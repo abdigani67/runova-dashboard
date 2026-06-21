@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI DM Automation — ROI Calculator</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#181b22; --line:#272b35; --ink:#e8eaed; --muted:#9aa0ab;
+    --accent:#7c5cff; --good:#2fbf71; --bad:#e5484d; --field:#11141a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--ink);line-height:1.5;padding:24px}
+  .wrap{max-width:880px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 16px}
+  label{display:block;font-size:13px;margin:14px 0 6px;color:var(--ink)}
+  label:first-of-type{margin-top:0}
+  .hint{color:var(--muted);font-size:11px;font-weight:400}
+  input[type=number]{width:100%;background:var(--field);border:1px solid var(--line);color:var(--ink);
+       border-radius:8px;padding:10px 12px;font-size:15px}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .rangeval{float:right;color:var(--accent);font-weight:600}
+  .out{display:flex;flex-direction:column;gap:14px}
+  .metric{display:flex;justify-content:space-between;align-items:baseline;
+       border-bottom:1px solid var(--line);padding-bottom:12px}
+  .metric:last-child{border-bottom:none;padding-bottom:0}
+  .metric .k{color:var(--muted);font-size:13px;max-width:60%}
+  .metric .v{font-size:20px;font-weight:700}
+  .verdict{margin-top:20px;border-radius:14px;padding:20px;text-align:center;font-size:15px;border:1px solid}
+  .verdict.go{background:rgba(47,191,113,.10);border-color:var(--good)}
+  .verdict.no{background:rgba(229,72,77,.10);border-color:var(--bad)}
+  .verdict .big{font-size:26px;font-weight:800;display:block;margin-bottom:6px}
+  .verdict.go .big{color:var(--good)} .verdict.no .big{color:var(--bad)}
+  .accent{color:var(--accent)} .good{color:var(--good)} .bad{color:var(--bad)}
+  footer{color:var(--muted);font-size:11px;margin-top:24px;line-height:1.6}
+  .price{display:flex;gap:12px;margin-top:8px}
+  .price>div{flex:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AI Instagram DM Automation — ROI Calculator</h1>
+  <p class="sub">Estimate recovered bookings and payback for a clinic at <span class="accent">£800 setup + £300/month</span>. Adjust any input — the numbers update live. Use it on sales calls.</p>
+
+  <div class="grid">
+    <!-- INPUTS -->
+    <div class="card">
+      <h2>Your clinic's numbers</h2>
+
+      <label>New enquiries per month <span class="hint">(all channels)</span></label>
+      <input id="enquiries" type="number" value="80" min="0">
+
+      <label>% of enquiries via Instagram / social DM <span class="rangeval" id="igPctV">40%</span></label>
+      <input id="igPct" type="range" min="0" max="100" value="40">
+
+      <label>How many of those DMs do you currently reply to fast enough to convert? <span class="rangeval" id="replyV">50%</span><span class="hint"> current capture rate</span></label>
+      <input id="replyRate" type="range" min="0" max="100" value="50">
+
+      <label>Capture rate WITH instant 24/7 AI replies <span class="rangeval" id="aiV">85%</span></label>
+      <input id="aiRate" type="range" min="0" max="100" value="85">
+
+      <label>Of captured/answered DM enquiries, % that book <span class="rangeval" id="bookV">30%</span><span class="hint"> enquiry→booking conversion</span></label>
+      <input id="bookRate" type="range" min="0" max="100" value="30">
+
+      <label>Average value of one booking <span class="hint">(treatment £, incl. likely repeat)</span></label>
+      <input id="value" type="number" value="250" min="0">
+
+      <div class="price">
+        <div>
+          <label>Monthly price (£)</label>
+          <input id="monthly" type="number" value="300" min="0">
+        </div>
+        <div>
+          <label>Setup fee (£)</label>
+          <input id="setup" type="number" value="800" min="0">
+        </div>
+      </div>
+    </div>
+
+    <!-- OUTPUTS -->
+    <div class="card">
+      <h2>What it's worth</h2>
+      <div class="out">
+        <div class="metric"><span class="k">DM enquiries / month</span><span class="v" id="oDm">—</span></div>
+        <div class="metric"><span class="k">Extra DMs captured by AI <span class="hint">(vs today)</span></span><span class="v accent" id="oCaptured">—</span></div>
+        <div class="metric"><span class="k">Extra bookings / month</span><span class="v accent" id="oBookings">—</span></div>
+        <div class="metric"><span class="k">Extra revenue / month</span><span class="v good" id="oRev">—</span></div>
+        <div class="metric"><span class="k">Cost / month</span><span class="v" id="oCost">—</span></div>
+        <div class="metric"><span class="k">Net gain / month</span><span class="v" id="oNet">—</span></div>
+        <div class="metric"><span class="k">Return on spend (ROI)</span><span class="v" id="oRoi">—</span></div>
+        <div class="metric"><span class="k">Bookings needed to break even</span><span class="v" id="oBreakeven">—</span></div>
+        <div class="metric"><span class="k">Setup paid back in</span><span class="v" id="oPayback">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="verdict" class="verdict go"><span class="big">—</span><span id="verdictText"></span></div>
+
+  <footer>
+    <strong>How to read this:</strong> the model recovers bookings that are currently lost to slow / missed DM replies — it does not assume new demand.
+    Extra bookings = (DM enquiries) × (AI capture rate − current capture rate) × (enquiry→booking rate).
+    All inputs are estimates to be confirmed in clinic interviews (see the interview script).
+    Keep figures conservative on a sales call — an honest break-even of 1–2 bookings is more persuasive than an inflated ROI.
+  </footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const gbp = n => '£' + Math.round(n).toLocaleString('en-GB');
+const ids = ['enquiries','igPct','replyRate','aiRate','bookRate','value','monthly','setup'];
+
+function calc(){
+  const enquiries = +$('enquiries').value || 0;
+  const igPct     = +$('igPct').value;
+  const reply     = +$('replyRate').value;
+  const ai        = +$('aiRate').value;
+  const book      = +$('bookRate').value;
+  const value     = +$('value').value || 0;
+  const monthly   = +$('monthly').value || 0;
+  const setup     = +$('setup').value || 0;
+
+  // live range labels
+  $('igPctV').textContent = igPct + '%';
+  $('replyV').textContent = reply + '%';
+  $('aiV').textContent    = ai + '%';
+  $('bookV').textContent  = book + '%';
+
+  const dm        = enquiries * igPct/100;
+  const uplift    = Math.max(0, (ai - reply)/100);          // extra fraction captured
+  const captured  = dm * uplift;
+  const bookings  = captured * book/100;
+  const revenue   = bookings * value;
+  const net       = revenue - monthly;
+  const roi       = monthly > 0 ? (revenue/monthly) : 0;
+  const breakeven = value > 0 ? (monthly/value) : 0;
+  const payback   = net > 0 ? (setup/net) : Infinity;
+
+  $('oDm').textContent       = dm.toFixed(0);
+  $('oCaptured').textContent = '+' + captured.toFixed(1);
+  $('oBookings').textContent = '+' + bookings.toFixed(1);
+  $('oRev').textContent      = gbp(revenue);
+  $('oCost').textContent     = gbp(monthly);
+  $('oNet').textContent      = (net>=0?'+':'') + gbp(net);
+  $('oNet').className        = 'v ' + (net>=0?'good':'bad');
+  $('oRoi').textContent      = roi.toFixed(1) + '×';
+  $('oRoi').className        = 'v ' + (roi>=1?'good':'bad');
+  $('oBreakeven').textContent= breakeven.toFixed(1) + ' / mo';
+  $('oPayback').textContent  = payback===Infinity ? 'never (net ≤ 0)'
+                              : payback < 1 ? '< 1 month'
+                              : payback.toFixed(1) + ' months';
+
+  const v = $('verdict'), t = $('verdictText');
+  if(net > 0 && roi >= 2){
+    v.className='verdict go';
+    v.querySelector('.big').textContent = roi.toFixed(1) + '× ROI';
+    t.textContent = `Pays for itself with just ${breakeven.toFixed(1)} booking${breakeven<1.5?'':'s'} a month, then nets ${gbp(net)}/mo. Strong case at this price.`;
+  } else if(net > 0){
+    v.className='verdict go';
+    v.querySelector('.big').textContent = 'Marginally positive';
+    t.textContent = `Nets ${gbp(net)}/mo — worth it, but thin. Tighten capture-rate or booking-value assumptions before pitching.`;
+  } else {
+    v.className='verdict no';
+    v.querySelector('.big').textContent = 'Below break-even';
+    t.textContent = `At these inputs the clinic loses money. It needs ${breakeven.toFixed(1)} bookings/mo just to break even — re-check volume, DM share, or price.`;
+  }
+}
+ids.forEach(id => $(id).addEventListener('input', calc));
+calc();
+</script>
+</body>
+</html>
