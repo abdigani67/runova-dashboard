@@ -292,6 +292,19 @@ tbody tr.lead-priority:hover td{background:#fbf0d6}
 .field textarea:focus{border-color:var(--aubergine-700);box-shadow:0 0 0 3px rgba(74,37,99,.1)}
 .tm-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 @media(max-width:520px){.tm-row{grid-template-columns:1fr}}
+/* ── Settings ── */
+.field select{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;outline:none;background:var(--surface);color:var(--ink);cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.field select:focus{border-color:var(--aubergine-700);box-shadow:0 0 0 3px rgba(74,37,99,.1)}
+.set-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:520px){.set-row{grid-template-columns:1fr}}
+.set-hd{display:flex;align-items:center;gap:9px;margin-bottom:18px}
+.set-hd svg{width:18px;height:18px;stroke:var(--aubergine-700);flex-shrink:0}
+.set-hd .panel-title{font-size:14px}
+.tone-preview{font-size:12.5px;color:var(--ink-3);margin-top:7px;line-height:1.5;font-style:italic}
+.field-hint{font-size:12px;color:var(--muted);margin-top:6px}
+.set-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:4px}
+.sk{background:linear-gradient(90deg,var(--line-2) 25%,var(--line) 37%,var(--line-2) 63%);background-size:400% 100%;animation:skl 1.4s ease infinite;border-radius:8px}
+@keyframes skl{0%{background-position:100% 0}100%{background-position:-100% 0}}
 
 /* ───── MISC ───── */
 .loader{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:320px;gap:14px}
@@ -389,6 +402,7 @@ tbody tr.lead-priority:hover td{background:#fbf0d6}
     <button onclick="showTab('leads',this)">Leads</button>
     <button onclick="showTab('conversations',this)">Conversations</button>
     <button onclick="showTab('treatments',this)">Treatments</button>
+    <button onclick="showTab('settings',this)">Settings</button>
   </div>
 
   <div class="shell">
@@ -404,6 +418,7 @@ tbody tr.lead-priority:hover td{background:#fbf0d6}
         <button class="sb-link" onclick="showTab('leads',this)"><svg viewBox="0 0 24 24" fill="none"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke-width="1.8"/><path d="M22 21v-2a4 4 0 00-3-3.87" stroke-width="1.8" stroke-linecap="round"/></svg>Leads</button>
         <button class="sb-link" onclick="showTab('conversations',this)"><svg viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Conversations</button>
         <button class="sb-link" onclick="showTab('treatments',this)"><svg viewBox="0 0 24 24" fill="none"><path d="M10.5 20.5L3.5 13.5a5 5 0 017-7L11 7l.5-.5a5 5 0 017 7l-7 7a1 1 0 01-1 0z" stroke-width="1.8" stroke-linejoin="round"/></svg>Treatments</button>
+        <button class="sb-link" onclick="showTab('settings',this)"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Settings</button>
       </nav>
       <div class="sb-foot">
         <div class="sb-clinic" id="sbClinic">—</div>
@@ -418,6 +433,7 @@ tbody tr.lead-priority:hover td{background:#fbf0d6}
       <div id="tab-leads" style="display:none"></div>
       <div id="tab-conversations" style="display:none"></div>
       <div id="tab-treatments" style="display:none"></div>
+      <div id="tab-settings" style="display:none"></div>
     </main>
   </div>
 </div>
@@ -495,7 +511,7 @@ async function resolveClinic(){
 
 async function loadAllData(){
   const [c,l,v,t] = await Promise.all([
-    supabaseClient.from('clinics').select('*').eq('id',clinicId).single(),
+    supabaseClient.from('clinics').select('id,clinic_name,avg_treatment_value').eq('id',clinicId).single(),
     supabaseClient.from('leads').select('*').eq('clinic_id',clinicId).order('last_contact',{ascending:false}),
     supabaseClient.from('conversations').select('*').eq('clinic_id',clinicId).order('timestamp',{ascending:true}),
     supabaseClient.from('treatments').select('*').eq('clinic_id',clinicId).order('active',{ascending:false}).order('treatment_name',{ascending:true})
@@ -520,7 +536,7 @@ async function refreshData(){
     const [l,v,c]=await Promise.all([
       supabaseClient.from('leads').select('*').eq('clinic_id',clinicId).order('last_contact',{ascending:false}),
       supabaseClient.from('conversations').select('*').eq('clinic_id',clinicId).order('timestamp',{ascending:true}),
-      supabaseClient.from('clinics').select('*').eq('id',clinicId).single()
+      supabaseClient.from('clinics').select('id,clinic_name,avg_treatment_value').eq('id',clinicId).single()
     ]);
     const prev=allConvos.length;
     allLeads=l.data||[]; allConvos=v.data||[]; if(c.data) clinicData=c.data;
@@ -1027,16 +1043,135 @@ async function setTreatmentActive(id, active){
   }catch(e){ toast('Could not update — '+e.message); }
 }
 
+// ── SETTINGS ──
+// Each preset's text is saved verbatim to clinics.ai_instructions. It's layered
+// on top of the house system prompt in the Make DM engine, so keep it to VOICE /
+// STYLE guidance, not a full prompt.
+const TONE_PRESETS = {
+  professional: {label:'Professional & clinical', text:"Speak with calm, professional authority, like an experienced aesthetics practitioner. Be precise and reassuring, prioritise safety and realistic expectations, and keep replies concise and polished. Minimal emoji."},
+  warm:         {label:'Warm & friendly',        text:"Be warm, friendly and reassuring, like a caring receptionist who wants the client to feel looked after. Natural and approachable, a little light emoji is fine, and gently guide them toward booking without pressure."},
+  chatty:       {label:'Chatty & personable',    text:"Be chatty, upbeat and personable, like texting a friend who happens to run a clinic. Relaxed and fun with contractions and the odd emoji, while staying clear on prices and booking."}
+};
+const IC_BUILDING = '<svg viewBox="0 0 24 24" fill="none"><path d="M3 21h18M6 21V7l6-4 6 4v14M10 9h1m3 0h1m-5 4h1m3 0h1m-5 4h1m3 0h1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const IC_ROBOT = '<svg viewBox="0 0 24 24" fill="none"><rect x="4" y="7" width="16" height="12" rx="2" stroke-width="1.8"/><path d="M9 7V4m6 3V4M9 12v3m6-3v3" stroke-width="1.8" stroke-linecap="round"/></svg>';
+
+function settingsSkeleton(){
+  return `<div class="panel" style="margin-bottom:14px">
+      <div class="sk" style="height:16px;width:140px;margin-bottom:22px"></div>
+      <div class="sk" style="height:44px;margin-bottom:14px"></div>
+      <div class="set-row"><div class="sk" style="height:44px"></div><div class="sk" style="height:44px"></div></div>
+      <div class="sk" style="height:44px;margin-top:14px"></div>
+    </div>
+    <div class="panel">
+      <div class="sk" style="height:16px;width:120px;margin-bottom:22px"></div>
+      <div class="sk" style="height:44px;margin-bottom:14px"></div>
+      <div class="sk" style="height:92px"></div>
+    </div>`;
+}
+
+async function renderSettings(){
+  const el=document.getElementById('tab-settings');
+  const head=`<div class="page-title">Settings</div><div class="page-sub">Configure your business details and AI assistant.</div>`;
+  el.innerHTML = head + settingsSkeleton();
+  let c;
+  try{
+    // Explicit column list — never fetch page_access_token or billing fields to the browser
+    const {data,error}=await supabaseClient.from('clinics')
+      .select('clinic_name,booking_link,business_hours,avg_treatment_value,ai_instructions')
+      .eq('id',clinicId).single();
+    if(error) throw error;
+    c=data||{};
+  }catch(e){
+    el.innerHTML = head + `<div class="empty">${IC.inbox}<div>Couldn't load your settings — ${esc(e.message||'please try again')}.</div></div>`;
+    return;
+  }
+  // Infer tone: exact match to a preset → select it; otherwise Custom with saved text
+  const ai=(c.ai_instructions||'');
+  let tone='custom';
+  for(const k of ['professional','warm','chatty']){ if(ai.trim()===TONE_PRESETS[k].text){ tone=k; break; } }
+  const customVal = tone==='custom' ? ai : '';
+  el.innerHTML = head + `
+    <div class="panel" style="margin-bottom:14px">
+      <div class="set-hd">${IC_BUILDING}<span class="panel-title">Business details</span></div>
+      <div class="field"><label>Business name</label><input id="setName" type="text" value="${esc(c.clinic_name||'')}" placeholder="Your clinic name"></div>
+      <div class="set-row">
+        <div class="field"><label>Booking link</label><input id="setBooking" type="url" value="${esc(c.booking_link||'')}" placeholder="https://calendly.com/your-clinic"></div>
+        <div class="field"><label>Average treatment value (£)</label><input id="setAvg" type="number" min="0" inputmode="numeric" value="${c.avg_treatment_value!=null?c.avg_treatment_value:''}" placeholder="250"></div>
+      </div>
+      <div class="field" style="margin-bottom:0"><label>Opening hours</label><input id="setHours" type="text" value="${esc(c.business_hours||'')}" placeholder="e.g. Mon–Sat 9am–6pm"></div>
+    </div>
+    <div class="panel" style="margin-bottom:14px">
+      <div class="set-hd">${IC_ROBOT}<span class="panel-title">AI assistant</span></div>
+      <div class="field">
+        <label>Tone</label>
+        <select id="setTone" onchange="updateTonePreview()">
+          <option value="professional"${tone==='professional'?' selected':''}>Professional & clinical</option>
+          <option value="warm"${tone==='warm'?' selected':''}>Warm & friendly</option>
+          <option value="chatty"${tone==='chatty'?' selected':''}>Chatty & personable</option>
+          <option value="custom"${tone==='custom'?' selected':''}>Custom</option>
+        </select>
+        <div class="tone-preview" id="tonePreview"></div>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Custom AI instructions</label>
+        <textarea id="setCustom" rows="4" oninput="updateTonePreview()" placeholder="Write your own voice &amp; style guidance for the AI…">${esc(customVal)}</textarea>
+        <div class="field-hint">If filled in, this overrides the tone preset entirely.</div>
+      </div>
+    </div>
+    <div class="set-actions">
+      <button class="btn-primary" id="setSaveBtn" onclick="saveSettings()">Save changes</button>
+    </div>`;
+  updateTonePreview();
+}
+
+function updateTonePreview(){
+  const sel=document.getElementById('setTone'); if(!sel) return;
+  const p=document.getElementById('tonePreview'); if(!p) return;
+  const custom=(document.getElementById('setCustom')?.value||'').trim();
+  if(custom){ p.textContent='Your custom instructions below will be used instead of the preset.'; return; }
+  const t=sel.value;
+  p.textContent = t==='custom' ? 'Add your own instructions below, or pick a tone preset.' : TONE_PRESETS[t].text;
+}
+
+async function saveSettings(){
+  const name=(document.getElementById('setName').value||'').trim();
+  if(!name){ toast('Business name is required.'); document.getElementById('setName').focus(); return; }
+  const avgRaw=(document.getElementById('setAvg').value||'').trim();
+  let avg=null;
+  if(avgRaw!==''){ const n=Math.round(Number(avgRaw)); if(isNaN(n)||n<0){ toast('Average treatment value must be a non-negative number.'); return; } avg=n; }
+  const booking=(document.getElementById('setBooking').value||'').trim();
+  const hours=(document.getElementById('setHours').value||'').trim();
+  const tone=document.getElementById('setTone').value;
+  const custom=(document.getElementById('setCustom').value||'').trim();
+  // Custom overrides the preset if filled; else save the selected preset's text
+  const ai = custom ? custom : (tone==='custom' ? '' : TONE_PRESETS[tone].text);
+  const btn=document.getElementById('setSaveBtn'); btn.disabled=true;
+  try{
+    const {error}=await supabaseClient.rpc('update_my_clinic_settings',{
+      p_clinic_name:name, p_booking_link:booking||null, p_business_hours:hours||null,
+      p_avg_treatment_value:avg, p_ai_instructions:ai||null
+    });
+    if(error){ btn.disabled=false; toast('Could not save — '+error.message); return; }
+    // Reflect the fields the rest of the dashboard uses, without a reload
+    if(clinicData){ clinicData.clinic_name=name; clinicData.avg_treatment_value=avg; }
+    const sc=document.getElementById('sbClinic'); if(sc) sc.textContent=name;
+    renderOverview();
+    btn.disabled=false;
+    toast('Settings saved ✓', 2000);
+  }catch(e){ btn.disabled=false; toast('Could not save — '+e.message); }
+}
+
 // ── TABS ──
 function showTab(name,btn){
-  ['overview','leads','conversations','treatments'].forEach(t=>{
+  ['overview','leads','conversations','treatments','settings'].forEach(t=>{
     const el=document.getElementById('tab-'+t);
     el.style.display=t===name?'block':'none';
     if(t===name){ el.classList.remove('tab-enter'); void el.offsetWidth; el.classList.add('tab-enter'); }
   });
   // sidebar active state
-  document.querySelectorAll('.sb-link').forEach((b,i)=>b.classList.toggle('active', ['overview','leads','conversations','treatments'][i]===name));
-  document.querySelectorAll('.mnav button').forEach((b,i)=>b.classList.toggle('active', ['overview','leads','conversations','treatments'][i]===name));
+  document.querySelectorAll('.sb-link').forEach((b,i)=>b.classList.toggle('active', ['overview','leads','conversations','treatments','settings'][i]===name));
+  document.querySelectorAll('.mnav button').forEach((b,i)=>b.classList.toggle('active', ['overview','leads','conversations','treatments','settings'][i]===name));
+  if(name==='settings') renderSettings();
 }
 </script>
 </body>
