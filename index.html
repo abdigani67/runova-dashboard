@@ -636,14 +636,24 @@ function lastMessageTime(l){
   return bestRaw || l.last_contact || l.updated_at || null;
 }
 
-// Show a readable name: prefer display_name; if the handle is a bare numeric IG ID,
-// label it "IG User ####" (last 4 digits) so it doesn't read like a phone number.
+// Friendly display aliases for specific handles. Instagram gives us a numeric
+// sender ID (real @usernames need Meta approval), so this maps known IDs to a
+// readable @handle for demos.
+const HANDLE_ALIASES = {'1287088163624200':'Kaizen_promotions'};
+// Show a readable name: alias first, then display_name; if the handle is a bare
+// numeric IG ID, label it "IG User ####" so it doesn't read like a phone number.
 function displayHandle(l){
-  if(l.display_name && l.display_name.trim()) return l.display_name.trim();
   const h=(l.instagram_handle||'').trim();
+  if(HANDLE_ALIASES[h]) return HANDLE_ALIASES[h];
+  if(l.display_name && l.display_name.trim()) return l.display_name.trim();
   if(!h) return '—';
   if(/^\d+$/.test(h)) return 'IG User '+h.slice(-4);
   return h;
+}
+// Label for a conversation handle (looks up its lead for display_name/alias)
+function handleLabel(h){
+  const lead=allLeads.find(l=>l.instagram_handle===h);
+  return displayHandle(lead||{instagram_handle:h});
 }
 
 // Build a 14-day enquiries area chart (inline SVG, no library)
@@ -781,7 +791,7 @@ function renderOverview(){
           : attention.slice(0,5).map(l=>`
             <div class="a-item">
               <div class="a-body">
-                <div class="a-handle">${l.instagram_handle||'Customer'} ${tempBadge(l.lead_temperature)}</div>
+                <div class="a-handle">${esc(displayHandle(l))} ${tempBadge(l.lead_temperature)}</div>
                 <div class="a-msg">${(l.last_message||'').substring(0,72)}${(l.last_message||'').length>72?'…':''}</div>
                 <div class="a-meta">£${l.estimated_value||0} est. value · ${l.last_contact?new Date(l.last_contact).toLocaleDateString('en-GB'):''}</div>
               </div>
@@ -929,7 +939,7 @@ function renderConversations(){
         const msgs=allConvos.filter(c=>c.instagram_handle===h); const last=msgs[msgs.length-1];
         const lead=allLeads.find(l=>l.instagram_handle===h); const temp=lead?.lead_temperature;
         return `<div class="conv-item${activeConvoHandle===h?' active':''}" onclick="selectConvo('${h}')">
-          <div class="conv-item-top"><div class="conv-item-handle">${h}</div><div class="conv-item-temp">${temp?tempBadge(temp):''}</div></div>
+          <div class="conv-item-top"><div class="conv-item-handle">${esc(handleLabel(h))}</div><div class="conv-item-temp">${temp?tempBadge(temp):''}</div></div>
           <div class="conv-item-preview">${(last?.message_text||'').substring(0,40)}${(last?.message_text||'').length>40?'…':''}</div>
           <div class="conv-item-time tnum">${last?.timestamp?new Date(last.timestamp).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}):''}</div>
         </div>`;
@@ -940,7 +950,7 @@ function renderConversations(){
 }
 function buildConvoMain(handle){
   const msgs=allConvos.filter(c=>c.instagram_handle===handle); const lead=allLeads.find(l=>l.instagram_handle===handle);
-  return `<div class="conv-hd"><div class="conv-hd-top"><div class="conv-hd-handle">${handle}</div>
+  return `<div class="conv-hd"><div class="conv-hd-top"><div class="conv-hd-handle">${esc(handleLabel(handle))}</div>
     <div style="display:flex;gap:8px;align-items:center">${tempBadge(lead?.lead_temperature)||''}<span class="badge badge-${lead?journeyOf(lead):'new'}">${lead?JOURNEY_LABEL[journeyOf(lead)]:'New'}</span></div></div>
     <div class="conv-hd-meta">${msgs.length} messages · Est. value £${lead?.estimated_value||0} · AI ${lead?.ai_active?'active':'paused'}</div></div>
     <div class="conv-messages" id="msgList">
