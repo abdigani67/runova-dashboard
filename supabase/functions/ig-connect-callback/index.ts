@@ -9,16 +9,17 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 Deno.serve(async (req) => {
-  const PORTAL_URL = Deno.env.get("PORTAL_URL")!;
+  const PORTAL_URL = (Deno.env.get("PORTAL_URL") ?? "").trim();
   const redirect = (q: string) =>
     new Response(null, { status: 302, headers: { Location: `${PORTAL_URL}/?${q}` } });
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const IG_APP_ID = Deno.env.get("IG_APP_ID")!;
-    const IG_APP_SECRET = Deno.env.get("IG_APP_SECRET")!;
-    const IG_REDIRECT_URI = Deno.env.get("IG_REDIRECT_URI")!;
+    // Trim to defend against secrets pasted with stray leading/trailing whitespace.
+    const IG_APP_ID = (Deno.env.get("IG_APP_ID") ?? "").trim();
+    const IG_APP_SECRET = (Deno.env.get("IG_APP_SECRET") ?? "").trim();
+    const IG_REDIRECT_URI = (Deno.env.get("IG_REDIRECT_URI") ?? "").trim();
 
     const url = new URL(req.url);
     if (url.searchParams.get("error")) {

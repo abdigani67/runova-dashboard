@@ -43,8 +43,8 @@ Deno.serve(async (req) => {
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
   try {
-    const IG_APP_SECRET = Deno.env.get("IG_APP_SECRET")!;
-    const PORTAL_URL = Deno.env.get("PORTAL_URL")!;
+    const IG_APP_SECRET = (Deno.env.get("IG_APP_SECRET") ?? "").trim();
+    const PORTAL_URL = (Deno.env.get("PORTAL_URL") ?? "").trim();
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
