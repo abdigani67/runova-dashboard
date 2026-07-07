@@ -20,8 +20,9 @@ Deno.serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const IG_APP_ID = Deno.env.get("IG_APP_ID")!;
-    const IG_REDIRECT_URI = Deno.env.get("IG_REDIRECT_URI")!;
+    // Trim to defend against secrets pasted with stray leading/trailing whitespace.
+    const IG_APP_ID = (Deno.env.get("IG_APP_ID") ?? "").trim();
+    const IG_REDIRECT_URI = (Deno.env.get("IG_REDIRECT_URI") ?? "").trim();
 
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader) return json({ error: "Not signed in" }, 401);

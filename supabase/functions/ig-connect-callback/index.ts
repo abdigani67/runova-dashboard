@@ -9,16 +9,17 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 Deno.serve(async (req) => {
-  const PORTAL_URL = Deno.env.get("PORTAL_URL")!;
+  const PORTAL_URL = (Deno.env.get("PORTAL_URL") ?? "").trim();
   const redirect = (q: string) =>
     new Response(null, { status: 302, headers: { Location: `${PORTAL_URL}/?${q}` } });
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const IG_APP_ID = Deno.env.get("IG_APP_ID")!;
-    const IG_APP_SECRET = Deno.env.get("IG_APP_SECRET")!;
-    const IG_REDIRECT_URI = Deno.env.get("IG_REDIRECT_URI")!;
+    // Trim to defend against secrets pasted with stray leading/trailing whitespace.
+    const IG_APP_ID = (Deno.env.get("IG_APP_ID") ?? "").trim();
+    const IG_APP_SECRET = (Deno.env.get("IG_APP_SECRET") ?? "").trim();
+    const IG_REDIRECT_URI = (Deno.env.get("IG_REDIRECT_URI") ?? "").trim();
 
     const url = new URL(req.url);
     if (url.searchParams.get("error")) {
@@ -77,10 +78,23 @@ Deno.serve(async (req) => {
     const expiresIn = Number(longData.expires_in ?? 5184000);
     const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
+    // Resolve the canonical Instagram account id. The oauth code-exchange
+    // `user_id` is app-scoped and does NOT match Instagram's messaging webhook
+    // events (which identify the account by its Instagram-scoped id). Read
+    // `user_id` from /me and store THAT, so incoming DMs route to this clinic.
+    let igAccountId = userId; // fallback to the app-scoped id
+    try {
+      const meRes = await fetch(
+        `https://graph.instagram.com/v21.0/me?fields=user_id&access_token=${encodeURIComponent(longToken)}`,
+      );
+      const me = await meRes.json();
+      if (me?.user_id) igAccountId = String(me.user_id);
+    } catch (_e) { /* keep the fallback */ }
+
     // Store the token server-side against the clinic. Never returned to a browser.
     const { error: uErr } = await admin.from("clinics").update({
       page_access_token: longToken,
-      instagram_page_id: userId,
+      instagram_page_id: igAccountId,
       token_expires_at: expiresAt,
       ig_connected_at: new Date().toISOString(),
     }).eq("id", clinicId);

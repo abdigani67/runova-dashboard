@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Runova</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://udlmobdkxorxwzelhmeo.supabase.co" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet">
@@ -467,6 +468,9 @@ tbody tr.lead-priority:hover td{background:#fbf0d6}
 
 <div class="toast" id="toast"></div>
 
+<!-- Supabase SDK loaded at end of body (not in <head>) so the login/dashboard
+     shell paints immediately instead of waiting on this ~100KB CDN download. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPA_URL = 'https://udlmobdkxorxwzelhmeo.supabase.co';
 // Public anon key — safe for the browser. On its own it can read NOTHING;
@@ -681,10 +685,14 @@ function lastMessageTime(l){
   return bestRaw || l.last_contact || l.updated_at || null;
 }
 
-// Friendly display aliases for specific handles. Instagram gives us a numeric
-// sender ID (real @usernames need Meta approval), so this maps known IDs to a
-// readable @handle for demos.
-const HANDLE_ALIASES = {'1287088163624200':'Kaizen_promotions'};
+// Friendly display aliases: Instagram's messaging webhook gives us a numeric
+// sender ID, so this maps known IDs to the account's real @username (resolved
+// via the Graph API) for a readable label in the dashboard.
+const HANDLE_ALIASES = {
+  '1287088163624200':'kai.zenpromotions',
+  '28710604871872632':'cvsmedicalaesthetics',
+  '2104246520515805':'arrr22__'
+};
 // Show a readable name: alias first, then display_name; if the handle is a bare
 // numeric IG ID, label it "IG User ####" so it doesn't read like a phone number.
 function displayHandle(l){
