@@ -504,7 +504,25 @@ async function doLogin() {
 function showErr(msg){ const e=document.getElementById('loginErr'); e.textContent=msg; e.style.display='block'; }
 async function doSignOut(){ stopPolling(); await supabaseClient.auth.signOut(); location.reload(); }
 document.getElementById('passIn').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-supabaseClient.auth.getSession().then(({data:{session}}) => { if(session) startApp(); });
+supabaseClient.auth.getSession().then(async ({data:{session}}) => {
+  if(session){ await startApp(); handleConnectRedirect(); }
+});
+
+// After returning from the Instagram OAuth round trip, the callback redirects to
+// PORTAL_URL/?connected=1 (or ?connect_error=1). Surface the result, clean the
+// URL, and open the Account tab so the freshly-connected profile renders.
+function handleConnectRedirect(){
+  const p = new URLSearchParams(location.search);
+  if(p.get('connected')==='1'){
+    toast('Instagram connected ✓', 2600);
+    history.replaceState(null,'',location.pathname);
+    showTab('account');
+  } else if(p.get('connect_error')==='1'){
+    toast('Instagram connection failed — please try again.', 3800);
+    history.replaceState(null,'',location.pathname);
+    showTab('account');
+  }
+}
 
 // ── START ──
 async function startApp(){
@@ -1300,9 +1318,33 @@ function accountNotConnected(){
     <div class="empty" style="padding:48px 40px">
       ${IC.inbox}
       <div style="font-weight:600;color:var(--ink-2);font-size:15px;margin-bottom:6px">No Instagram account connected yet</div>
-      <div>Once your Instagram business account is linked, your account handle, live profile and recent posts will appear here.</div>
+      <div style="margin-bottom:22px">Connect your Instagram business account to let your AI receptionist read and reply to your DMs. Your handle, live profile and recent posts will then appear here.</div>
+      <button class="btn-primary" id="igConnectBtn" onclick="igConnect(this)" style="display:inline-flex;align-items:center;gap:8px;padding:11px 18px">
+        <svg viewBox="0 0 24 24" fill="none" style="width:17px;height:17px"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="1.9"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.9"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor"/></svg>
+        Connect Instagram
+      </button>
     </div>
   </div>`;
+}
+
+// Kick off the OAuth connect flow: ask ig-connect-start for the authorize URL
+// (authenticated by the logged-in user's JWT), then redirect the browser to it.
+async function igConnect(btn){
+  if(btn){ btn.disabled=true; btn.style.opacity='.6'; }
+  try{
+    const { data:{ session } } = await supabaseClient.auth.getSession();
+    if(!session) throw new Error('Your session has expired — please sign in again.');
+    const res = await fetch(SUPA_URL+'/functions/v1/ig-connect-start', {
+      method:'POST',
+      headers:{ 'Authorization':'Bearer '+session.access_token, 'apikey':ANON_KEY }
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok || !data.url) throw new Error(data.error||('Could not start connect ('+res.status+')'));
+    window.location.href = data.url;
+  }catch(e){
+    if(btn){ btn.disabled=false; btn.style.opacity='1'; }
+    toast('Couldn\'t start Instagram connect — '+(e.message||'please try again'));
+  }
 }
 
 function accountSkeleton(){
