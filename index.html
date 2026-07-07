@@ -681,10 +681,14 @@ function lastMessageTime(l){
   return bestRaw || l.last_contact || l.updated_at || null;
 }
 
-// Friendly display aliases for specific handles. Instagram gives us a numeric
-// sender ID (real @usernames need Meta approval), so this maps known IDs to a
-// readable @handle for demos.
-const HANDLE_ALIASES = {'1287088163624200':'Kaizen_promotions'};
+// Friendly display aliases: Instagram's messaging webhook gives us a numeric
+// sender ID, so this maps known IDs to the account's real @username (resolved
+// via the Graph API) for a readable label in the dashboard.
+const HANDLE_ALIASES = {
+  '1287088163624200':'kai.zenpromotions',
+  '28710604871872632':'cvsmedicalaesthetics',
+  '2104246520515805':'arrr22__'
+};
 // Show a readable name: alias first, then display_name; if the handle is a bare
 // numeric IG ID, label it "IG User ####" so it doesn't read like a phone number.
 function displayHandle(l){
