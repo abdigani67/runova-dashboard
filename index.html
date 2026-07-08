@@ -1165,7 +1165,7 @@ async function renderSettings(){
   try{
     // Explicit column list — never fetch page_access_token or billing fields to the browser
     const {data,error}=await supabaseClient.from('clinics')
-      .select('clinic_name,booking_link,business_hours,avg_treatment_value,ai_instructions,clinic_knowledge')
+      .select('clinic_name,booking_link,business_hours,avg_treatment_value,ai_instructions,clinic_knowledge,assistant_name')
       .eq('id',clinicId).single();
     if(error) throw error;
     c=data||{};
@@ -1179,6 +1179,7 @@ async function renderSettings(){
   for(const k of ['professional','warm','chatty']){ if(ai.trim()===TONE_PRESETS[k].text){ tone=k; break; } }
   const customVal = tone==='custom' ? ai : '';
   const knowledgeVal = c.clinic_knowledge || '';
+  const assistantVal = c.assistant_name || '';
   el.innerHTML = head + `
     <div class="panel" style="margin-bottom:14px">
       <div class="set-hd">${IC_BUILDING}<span class="panel-title">Business details</span></div>
@@ -1191,6 +1192,11 @@ async function renderSettings(){
     </div>
     <div class="panel" style="margin-bottom:14px">
       <div class="set-hd">${IC_ROBOT}<span class="panel-title">AI assistant</span></div>
+      <div class="field">
+        <label>Assistant name</label>
+        <input id="setAssistant" type="text" value="${esc(assistantVal)}" placeholder="e.g. Ella, or your clinic's name">
+        <div class="field-hint">Shown when the assistant introduces itself on the first message of a chat. Leave blank and it'll say "the clinic's assistant".</div>
+      </div>
       <div class="field">
         <label>Tone</label>
         <select id="setTone" onchange="updateTonePreview()">
@@ -1238,13 +1244,15 @@ async function saveSettings(){
   const tone=document.getElementById('setTone').value;
   const custom=(document.getElementById('setCustom').value||'').trim();
   const knowledge=(document.getElementById('setKnowledge')?.value||'').trim();
+  const assistant=(document.getElementById('setAssistant')?.value||'').trim();
   // Custom overrides the preset if filled; else save the selected preset's text
   const ai = custom ? custom : (tone==='custom' ? '' : TONE_PRESETS[tone].text);
   const btn=document.getElementById('setSaveBtn'); btn.disabled=true;
   try{
     const {error}=await supabaseClient.rpc('update_my_clinic_settings',{
       p_clinic_name:name, p_booking_link:booking||null, p_business_hours:hours||null,
-      p_avg_treatment_value:avg, p_ai_instructions:ai||null, p_clinic_knowledge:knowledge
+      p_avg_treatment_value:avg, p_ai_instructions:ai||null, p_clinic_knowledge:knowledge,
+      p_assistant_name:assistant
     });
     if(error){ btn.disabled=false; toast('Could not save — '+error.message); return; }
     // Reflect the fields the rest of the dashboard uses, without a reload
