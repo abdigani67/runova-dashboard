@@ -1009,7 +1009,11 @@ function openConvoFromModal(handle){ showTab('conversations',null); setTimeout((
 
 // ── CONVERSATIONS ──
 function renderConversations(){
-  const handles=[...new Set(allConvos.map(c=>c.instagram_handle).filter(Boolean))];
+  // Order threads by most recent activity — whoever messaged last floats to the top.
+  // allConvos is sorted by timestamp ascending, so the last time we see a handle is its newest message.
+  const lastTs={};
+  for(const c of allConvos){ if(c.instagram_handle) lastTs[c.instagram_handle]=c.timestamp; }
+  const handles=Object.keys(lastTs).sort((a,b)=>new Date(lastTs[b]||0)-new Date(lastTs[a]||0));
   const el=document.getElementById('tab-conversations');
   const sidebar=handles.length===0
     ? `<div class="empty" style="padding:30px">${IC.chat}<div>No conversations yet.</div></div>`
