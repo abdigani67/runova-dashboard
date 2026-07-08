@@ -1165,7 +1165,7 @@ async function renderSettings(){
   try{
     // Explicit column list — never fetch page_access_token or billing fields to the browser
     const {data,error}=await supabaseClient.from('clinics')
-      .select('clinic_name,booking_link,business_hours,avg_treatment_value,ai_instructions')
+      .select('clinic_name,booking_link,business_hours,avg_treatment_value,ai_instructions,clinic_knowledge')
       .eq('id',clinicId).single();
     if(error) throw error;
     c=data||{};
@@ -1178,6 +1178,7 @@ async function renderSettings(){
   let tone='custom';
   for(const k of ['professional','warm','chatty']){ if(ai.trim()===TONE_PRESETS[k].text){ tone=k; break; } }
   const customVal = tone==='custom' ? ai : '';
+  const knowledgeVal = c.clinic_knowledge || '';
   el.innerHTML = head + `
     <div class="panel" style="margin-bottom:14px">
       <div class="set-hd">${IC_BUILDING}<span class="panel-title">Business details</span></div>
@@ -1200,10 +1201,15 @@ async function renderSettings(){
         </select>
         <div class="tone-preview" id="tonePreview"></div>
       </div>
-      <div class="field" style="margin-bottom:0">
+      <div class="field">
         <label>Custom AI instructions</label>
         <textarea id="setCustom" rows="4" oninput="updateTonePreview()" placeholder="Write your own voice &amp; style guidance for the AI…">${esc(customVal)}</textarea>
         <div class="field-hint">If filled in, this overrides the tone preset entirely.</div>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Clinic knowledge &amp; FAQ</label>
+        <textarea id="setKnowledge" rows="6" placeholder="Anything specific to your clinic the AI should know — brands you use, practitioner credentials, financing/deposits, cancellation policy, parking, common FAQs, what makes you different…">${esc(knowledgeVal)}</textarea>
+        <div class="field-hint">The AI uses this as authoritative info about your clinic when answering DMs. It never invents details that aren't here or in your treatments.</div>
       </div>
     </div>
     <div class="set-actions">
@@ -1231,13 +1237,14 @@ async function saveSettings(){
   const hours=(document.getElementById('setHours').value||'').trim();
   const tone=document.getElementById('setTone').value;
   const custom=(document.getElementById('setCustom').value||'').trim();
+  const knowledge=(document.getElementById('setKnowledge')?.value||'').trim();
   // Custom overrides the preset if filled; else save the selected preset's text
   const ai = custom ? custom : (tone==='custom' ? '' : TONE_PRESETS[tone].text);
   const btn=document.getElementById('setSaveBtn'); btn.disabled=true;
   try{
     const {error}=await supabaseClient.rpc('update_my_clinic_settings',{
       p_clinic_name:name, p_booking_link:booking||null, p_business_hours:hours||null,
-      p_avg_treatment_value:avg, p_ai_instructions:ai||null
+      p_avg_treatment_value:avg, p_ai_instructions:ai||null, p_clinic_knowledge:knowledge
     });
     if(error){ btn.disabled=false; toast('Could not save — '+error.message); return; }
     // Reflect the fields the rest of the dashboard uses, without a reload
