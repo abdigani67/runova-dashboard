@@ -1425,6 +1425,7 @@ function showTab(name,btn){
   // sidebar active state
   document.querySelectorAll('.sb-link').forEach((b,i)=>b.classList.toggle('active', TABS[i]===name));
   document.querySelectorAll('.mnav button').forEach((b,i)=>b.classList.toggle('active', TABS[i]===name));
+  if(name==='conversations') renderConversations();
   if(name==='settings') renderSettings();
   if(name==='account') renderAccount();
 }
