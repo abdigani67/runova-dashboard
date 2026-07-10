@@ -1189,6 +1189,23 @@ function backToImportSource(){
   document.getElementById('imStepSource').style.display='block';
   document.getElementById('imStepPreview').style.display='none';
 }
+// Plain fetch with just Authorization+apikey (+Content-Type for the JSON body),
+// matching every other Edge Function call in this dashboard (see IG_ACCOUNT_FN
+// above) — supabaseClient.functions.invoke() adds extra headers (e.g.
+// x-client-info) that aren't in these functions' CORS allowlist, which the
+// browser blocks at preflight before the request ever reaches the function.
+async function callImportTreatments(body){
+  const {data:{session}} = await supabaseClient.auth.getSession();
+  if(!session) throw new Error('Your session has expired — please sign in again.');
+  const res = await fetch(SUPA_URL+'/functions/v1/import-treatments', {
+    method:'POST',
+    headers:{ 'Authorization':'Bearer '+session.access_token, 'apikey':ANON_KEY, 'Content-Type':'application/json' },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok && !data.needs_fallback) throw new Error(data.error||('Request failed ('+res.status+')'));
+  return data;
+}
 async function previewImport(){
   const err=document.getElementById('imErr'); err.style.display='none'; err.textContent='';
   const url=(document.getElementById('imUrl').value||'').trim();
@@ -1197,9 +1214,8 @@ async function previewImport(){
   const btn=document.getElementById('imPreviewBtn'); btn.disabled=true; btn.textContent='Fetching…';
   try{
     const body = url ? {url} : {text};
-    const {data,error} = await supabaseClient.functions.invoke('import-treatments',{body});
+    const data = await callImportTreatments(body);
     btn.disabled=false; btn.textContent='Preview import';
-    if(error){ err.textContent='Import failed — '+(error.message||'please try again'); err.style.display='block'; return; }
     if(data?.error){ err.textContent=data.error; err.style.display='block'; return; }
     if(data?.needs_fallback){ err.textContent=data.message||'Try pasting the price list instead.'; err.style.display='block'; return; }
     const treatments = data?.treatments||[];
@@ -1224,9 +1240,9 @@ async function confirmImport(){
   if(!importPending) return;
   const btn=document.getElementById('imConfirmBtn'); btn.disabled=true; btn.textContent='Importing…';
   try{
-    const {data,error} = await supabaseClient.functions.invoke('import-treatments',{body:{...importPending, commit:true}});
+    const data = await callImportTreatments({...importPending, commit:true});
     btn.disabled=false; btn.textContent='Confirm import';
-    if(error || data?.error){ toast('Import failed — '+(error?.message||data?.error||'please try again')); return; }
+    if(data?.error){ toast('Import failed — '+data.error); return; }
     await refreshTreatments();
     closeImportModal();
     toast(`Imported ${data.inserted} treatment${data.inserted===1?'':'s'} ✓`, 2600);
