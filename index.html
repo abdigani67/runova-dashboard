@@ -251,6 +251,7 @@ tbody tr.lead-priority:hover td{background:#fbf0d6}
 .conv-item-preview{font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .conv-item-time{font-size:11px;color:var(--muted);margin-top:3px}
 .conv-main{display:flex;flex-direction:column}
+.conv-back{display:none;align-items:center;gap:5px;background:none;border:none;padding:0;margin-bottom:10px;font-size:13px;font-weight:600;color:var(--aubergine-700);cursor:pointer;font-family:inherit}
 .conv-hd{padding:16px 20px;border-bottom:1px solid var(--line)}
 .conv-hd-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .conv-hd-handle{font-size:15px;font-weight:600;letter-spacing:-.01em}
@@ -333,7 +334,10 @@ tbody tr.lead-priority:hover td{background:#fbf0d6}
   .content{padding:22px 18px 52px}
   .hero-row,.metrics,.grid-2{grid-template-columns:1fr}
   .intel-grid{grid-template-columns:1fr 1fr}
-  .conv-layout{grid-template-columns:1fr}.conv-sidebar{max-height:260px}
+  .conv-layout{grid-template-columns:1fr}
+  .conv-back{display:inline-flex}
+  .conv-layout.conv-active .conv-sidebar{display:none}
+  .conv-layout:not(.conv-active) .conv-main{display:none}
   .table-card{display:none}
   .leads-mobile{display:block}
 }
@@ -1115,11 +1119,12 @@ function renderConversations(){
       }).join('');
   const main=activeConvoHandle?buildConvoMain(activeConvoHandle):`<div class="conv-empty">${IC.chat}<div>Select a conversation to read it.</div></div>`;
   el.innerHTML = `<div class="page-title">Conversations</div><div class="page-sub">Every chat your AI has handled, end to end.</div>
-    <div class="conv-layout"><div class="conv-sidebar"><div class="conv-sidebar-hd">Conversations (${handles.length})</div>${sidebar}</div><div class="conv-main" id="convMain">${main}</div></div>`;
+    <div class="conv-layout${activeConvoHandle?' conv-active':''}"><div class="conv-sidebar"><div class="conv-sidebar-hd">Conversations (${handles.length})</div>${sidebar}</div><div class="conv-main" id="convMain">${main}</div></div>`;
 }
+function backToConvoList(){ activeConvoHandle=null; renderConversations(); }
 function buildConvoMain(handle){
   const msgs=allConvos.filter(c=>c.instagram_handle===handle); const lead=allLeads.find(l=>l.instagram_handle===handle);
-  return `<div class="conv-hd"><div class="conv-hd-top"><div class="conv-hd-handle">${esc(handleLabel(handle))}</div>
+  return `<div class="conv-hd"><button class="conv-back" onclick="backToConvoList()">← Back to conversations</button><div class="conv-hd-top"><div class="conv-hd-handle">${esc(handleLabel(handle))}</div>
     <div style="display:flex;gap:8px;align-items:center">${tempBadge(lead?.lead_temperature)||''}<span class="badge badge-${lead?journeyOf(lead):'new'}">${lead?JOURNEY_LABEL[journeyOf(lead)]:'New'}</span></div></div>
     <div class="conv-hd-meta">${msgs.length} messages · Est. value £${lead?.estimated_value||0} · AI ${lead?.ai_active?'active':'paused'}</div></div>
     <div class="conv-messages" id="msgList">
