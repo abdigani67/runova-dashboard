@@ -269,6 +269,12 @@ tbody tr.lead-priority:hover td{background:#fbf0d6}
 .conv-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted);min-height:400px;font-size:13.5px}
 .conv-empty svg{width:30px;height:30px;stroke:var(--line);stroke-width:1.5}
 .conv-compose{padding:13px 20px;border-top:1px solid var(--line);background:var(--surface)}
+.conv-compose-desktop{display:flex;gap:9px;align-items:flex-end}
+.conv-compose-desktop textarea{flex:1;resize:none;max-height:90px;padding:10px 13px;border:1px solid var(--line);border-radius:10px;font-size:13.5px;font-family:inherit;outline:none;background:var(--bg);transition:border-color .15s,box-shadow .15s}
+.conv-compose-desktop textarea:focus{border-color:var(--aubergine-700);box-shadow:0 0 0 3px rgba(74,37,99,.1)}
+.conv-compose-desktop textarea:disabled{opacity:.6}
+.conv-compose-desktop .btn-primary:disabled{opacity:.55;cursor:default}
+.conv-compose-mobile{display:none}
 .conv-reply-btn{width:100%}
 
 /* ───── TREATMENTS ───── */
@@ -342,6 +348,8 @@ tbody tr.lead-priority:hover td{background:#fbf0d6}
   .conv-layout:not(.conv-active) .conv-main{display:none}
   .table-card{display:none}
   .leads-mobile{display:block}
+  .conv-compose-desktop{display:none}
+  .conv-compose-mobile{display:block}
 }
 @media(max-width:520px){.metrics{grid-template-columns:1fr}.intel-grid{grid-template-columns:1fr}}
 .lead-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:11px;cursor:pointer}
@@ -1136,11 +1144,52 @@ function buildConvoMain(handle){
       ${msgs.map(m=>`<div class="msg-row ${m.sender_type}"><div><div class="msg-bubble">${m.message_text||''}</div>
         <div class="msg-time">${m.sender_type==='ai'?'AI':m.sender_type==='staff'?'Staff':'Customer'} · ${m.timestamp?new Date(m.timestamp).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):''}</div></div></div>`).join('')}
     </div>
-    <div class="conv-compose">
+    <div class="conv-compose conv-compose-desktop">
+      <textarea id="composeInput" rows="1" placeholder="Reply as staff — sends for real on Instagram…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendStaffMessage('${handle}')}"></textarea>
+      <button class="btn-primary" id="composeSendBtn" onclick="sendStaffMessage('${handle}')">Send</button>
+    </div>
+    <div class="conv-compose conv-compose-mobile">
       <button class="btn-primary conv-reply-btn" onclick="replyOnInstagram('${handle}')">Reply on Instagram</button>
     </div>`;
 }
 function selectConvo(handle){ activeConvoHandle=handle; renderConversations(); setTimeout(()=>{const el=document.getElementById('msgList');if(el)el.scrollTop=el.scrollHeight;},50); }
+const SEND_MESSAGE_FN = SUPA_URL + '/functions/v1/send-message';
+// Sends a real Instagram DM via the send-message Edge Function (which holds the
+// clinic's token server-side), then hands the lead to staff so the AI stops
+// auto-replying — mirrors what already happens when staff replies directly in
+// the Instagram app itself. Desktop-only UI (see .conv-compose-desktop): on
+// mobile staff already have the Instagram app, so replyOnInstagram() is
+// simpler and avoids duplicating a reply surface.
+async function sendStaffMessage(handle){
+  const input = document.getElementById('composeInput');
+  const btn = document.getElementById('composeSendBtn');
+  const text = (input.value||'').trim();
+  if(!text) return;
+  btn.disabled = true; input.disabled = true;
+  try{
+    const {data:{session}} = await supabaseClient.auth.getSession();
+    if(!session) throw new Error('Your session has expired — please sign in again.');
+    const res = await fetch(SEND_MESSAGE_FN, {
+      method:'POST',
+      headers:{ 'Authorization':'Bearer '+session.access_token, 'apikey':ANON_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ handle, message_text: text })
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok || data.error) throw new Error(data.error || ('Request failed ('+res.status+')'));
+    allConvos.push({ id:'temp-'+Date.now(), instagram_handle:handle, sender_type:'staff', message_text:text, timestamp:new Date().toISOString() });
+    const lead = allLeads.find(l=>l.instagram_handle===handle);
+    if(lead){ lead.handoff_status='human'; lead.ai_active=false; }
+    renderConversations();
+    setTimeout(()=>{
+      const msgEl=document.getElementById('msgList'); if(msgEl) msgEl.scrollTop=msgEl.scrollHeight;
+      const freshInput=document.getElementById('composeInput'); if(freshInput) freshInput.focus();
+    },50);
+    if(data.tagged) toast("Sent — this lead hadn't messaged recently, so Instagram needed a human-agent tag to deliver it", 4200);
+  }catch(e){
+    toast('Failed to send — '+e.message, 3600);
+    btn.disabled = false; input.disabled = false;
+  }
+}
 
 // ── TREATMENTS ──
 function renderTreatments(){
