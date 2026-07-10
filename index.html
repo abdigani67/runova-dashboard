@@ -779,11 +779,24 @@ function handleLabel(h){
 }
 // Jump straight to a DM with this lead. instagram_handle is a numeric IGSID, not
 // a real @username, so we need the resolved alias (from ig-usernames) to build a
-// working ig.me/m/<username> deep link; if it hasn't resolved yet, fall back to
-// the generic inbox and tell staff who to look for.
+// working ig.me/m/<username> deep link. Meta only supports ig.me links inside the
+// Instagram mobile app — on Instagram Web (desktop) they just land on the generic
+// site — so on desktop we instead copy the real @username and point staff at the
+// inbox search bar, which is a real shortcut there. Falls back to a plain "look
+// for this name" toast if the username hasn't resolved yet.
 function replyOnInstagram(handle){
   const username = HANDLE_ALIASES[(handle||'').trim()];
-  if(username){ window.open('https://ig.me/m/'+encodeURIComponent(username), '_blank'); return; }
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if(username && isMobile){
+    window.open('https://ig.me/m/'+encodeURIComponent(username), '_blank');
+    return;
+  }
+  if(username){
+    if(navigator.clipboard) navigator.clipboard.writeText('@'+username).catch(()=>{});
+    toast(`Copied @${username} — paste it into Instagram's DM search to find them (ig.me links only work in the mobile app)`, 4200);
+    window.open('https://www.instagram.com/direct/inbox/', '_blank');
+    return;
+  }
   toast(`Couldn't find their @username yet — look for "${handleLabel(handle)}" in your inbox`, 3200);
   window.open('https://www.instagram.com/direct/inbox/', '_blank');
 }
