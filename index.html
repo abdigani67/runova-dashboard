@@ -415,6 +415,35 @@ tbody tr.lead-priority:hover td{background:#fbf0d6}
   </div>
 </div>
 
+<div class="modal-overlay" id="importModal">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">Import treatments</div>
+      <button class="modal-close" onclick="closeImportModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="login-err" id="imErr"></div>
+      <div id="imStepSource">
+        <div class="field"><label>Booking page URL</label><input id="imUrl" type="url" placeholder="https://www.fresha.com/..."></div>
+        <div class="field-hint" style="margin:-4px 0 14px">Fresha URLs only for now. On another platform, or if the fetch gets blocked, paste your price list below instead.</div>
+        <div class="field" style="margin-bottom:0"><label>…or paste your price list</label><textarea id="imText" rows="6" placeholder="Paste your treatment names and prices, one per line…"></textarea></div>
+        <div style="display:flex;gap:9px;margin-top:14px">
+          <button class="btn-primary" id="imPreviewBtn" onclick="previewImport()">Preview import</button>
+          <button class="btn-secondary" onclick="closeImportModal()">Cancel</button>
+        </div>
+      </div>
+      <div id="imStepPreview" style="display:none">
+        <div class="field-hint" id="imPreviewSummary" style="margin-bottom:12px"></div>
+        <div id="imPreviewList" style="max-height:340px;overflow:auto;margin-bottom:14px"></div>
+        <div style="display:flex;gap:9px">
+          <button class="btn-primary" id="imConfirmBtn" onclick="confirmImport()">Confirm import</button>
+          <button class="btn-secondary" onclick="backToImportSource()">Back</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- APP -->
 <div class="app" id="app">
   <!-- mobile top bar -->
@@ -1050,7 +1079,10 @@ function renderTreatments(){
         <div class="page-title">Treatments</div>
         <div class="treatments-note" style="margin-bottom:0">These are the treatments your AI quotes from for <strong>${esc(clinicData?.clinic_name||'your clinic')}</strong>. Changes go live on the very next message.</div>
       </div>
-      <button class="btn-add" onclick="openTreatmentModal()"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>Add treatment</button>
+      <div style="display:flex;gap:9px;flex-shrink:0">
+        <button class="btn-secondary" onclick="openImportModal()">Import treatments</button>
+        <button class="btn-add" onclick="openTreatmentModal()"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>Add treatment</button>
+      </div>
     </div>
     <div class="treatments-grid">
       ${allTreatments.length===0
@@ -1133,6 +1165,81 @@ async function setTreatmentActive(id, active){
     renderTreatments();
     toast(active?'Treatment reactivated ✓':'Treatment deactivated', 2000);
   }catch(e){ toast('Could not update — '+e.message); }
+}
+
+// ── TREATMENTS: import from booking platform (Fresha URL or pasted price list) ──
+// Calls the import-treatments Edge Function twice by design: once with commit
+// omitted to preview the cleaned list, and again with commit:true from the same
+// source once the clinic confirms. The function re-fetches/re-cleans on commit
+// rather than trusting a client-echoed treatment list.
+let importPending = null;
+function openImportModal(){
+  importPending = null;
+  document.getElementById('imUrl').value='';
+  document.getElementById('imText').value='';
+  const err=document.getElementById('imErr'); err.style.display='none'; err.textContent='';
+  document.getElementById('imStepSource').style.display='block';
+  document.getElementById('imStepPreview').style.display='none';
+  const btn=document.getElementById('imPreviewBtn'); btn.disabled=false; btn.textContent='Preview import';
+  document.getElementById('importModal').classList.add('open');
+  setTimeout(()=>document.getElementById('imUrl').focus(),50);
+}
+function closeImportModal(){ document.getElementById('importModal').classList.remove('open'); }
+function backToImportSource(){
+  document.getElementById('imStepSource').style.display='block';
+  document.getElementById('imStepPreview').style.display='none';
+}
+async function previewImport(){
+  const err=document.getElementById('imErr'); err.style.display='none'; err.textContent='';
+  const url=(document.getElementById('imUrl').value||'').trim();
+  const text=(document.getElementById('imText').value||'').trim();
+  if(!url && !text){ err.textContent='Enter a booking URL or paste a price list.'; err.style.display='block'; return; }
+  const btn=document.getElementById('imPreviewBtn'); btn.disabled=true; btn.textContent='Fetching…';
+  try{
+    const body = url ? {url} : {text};
+    const {data,error} = await supabaseClient.functions.invoke('import-treatments',{body});
+    btn.disabled=false; btn.textContent='Preview import';
+    if(error){ err.textContent='Import failed — '+(error.message||'please try again'); err.style.display='block'; return; }
+    if(data?.error){ err.textContent=data.error; err.style.display='block'; return; }
+    if(data?.needs_fallback){ err.textContent=data.message||'Try pasting the price list instead.'; err.style.display='block'; return; }
+    const treatments = data?.treatments||[];
+    if(!treatments.length){ err.textContent="Couldn't find any treatments to import."; err.style.display='block'; return; }
+    importPending = url ? {url} : {text};
+    document.getElementById('imPreviewSummary').textContent =
+      `Found ${treatments.length} treatment${treatments.length===1?'':'s'}${data.cleanup && data.cleanup!=='claude' ? ' (basic cleanup — set ANTHROPIC_API_KEY for AI cleanup)' : ''}. Review below, then confirm to add them — this won't touch your existing treatments.`;
+    document.getElementById('imPreviewList').innerHTML = treatments.map(t=>`
+      <div class="treatment-card" style="margin-bottom:8px">
+        <div class="treatment-name">${esc(t.treatment_name)}</div>
+        <div class="treatment-price tnum">£${t.price_from||0}${t.price_to&&t.price_to!==t.price_from?' – £'+t.price_to:''}</div>
+        <div class="treatment-meta">${t.duration_mins?`${t.duration_mins} mins<br>`:''}${t.description?esc(t.description):''}</div>
+      </div>`).join('');
+    document.getElementById('imStepSource').style.display='none';
+    document.getElementById('imStepPreview').style.display='block';
+  }catch(e){
+    btn.disabled=false; btn.textContent='Preview import';
+    err.textContent='Import failed — '+(e.message||'please try again'); err.style.display='block';
+  }
+}
+async function confirmImport(){
+  if(!importPending) return;
+  const btn=document.getElementById('imConfirmBtn'); btn.disabled=true; btn.textContent='Importing…';
+  try{
+    const {data,error} = await supabaseClient.functions.invoke('import-treatments',{body:{...importPending, commit:true}});
+    btn.disabled=false; btn.textContent='Confirm import';
+    if(error || data?.error){ toast('Import failed — '+(error?.message||data?.error||'please try again')); return; }
+    await refreshTreatments();
+    closeImportModal();
+    toast(`Imported ${data.inserted} treatment${data.inserted===1?'':'s'} ✓`, 2600);
+  }catch(e){
+    btn.disabled=false; btn.textContent='Confirm import';
+    toast('Import failed — '+e.message);
+  }
+}
+async function refreshTreatments(){
+  const {data} = await supabaseClient.from('treatments').select('*').eq('clinic_id',clinicId)
+    .order('active',{ascending:false}).order('treatment_name',{ascending:true});
+  allTreatments = data||[];
+  renderTreatments();
 }
 
 // ── SETTINGS ──
