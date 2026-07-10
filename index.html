@@ -317,22 +317,34 @@ tbody tr.lead-priority:hover td{background:#fbf0d6}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--ink);color:#fff;padding:11px 19px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);z-index:300;opacity:0;transition:transform .3s cubic-bezier(.22,1,.36,1),opacity .3s}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 
+.mnav-wrap{display:none}
+.leads-mobile{display:none}
 @media(max-width:980px){
   .shell{grid-template-columns:1fr}
   .sidebar{display:none}
   .mtop{display:flex;align-items:center;justify-content:space-between;background:var(--aubergine);color:#fff;padding:0 18px;height:56px;position:sticky;top:0;z-index:100}
   .mtop .wm{font-size:17px;font-weight:700;display:flex;align-items:center;gap:9px}
-  .mnav{display:flex;gap:18px;background:var(--surface);border-bottom:1px solid var(--line);padding:0 18px;overflow-x:auto;position:sticky;top:56px;z-index:90}
+  .mnav-wrap{display:block;position:sticky;top:56px;z-index:90}
+  .mnav{display:flex;gap:18px;background:var(--surface);border-bottom:1px solid var(--line);padding:0 18px;overflow-x:auto}
   .mnav button{padding:13px 0;font-size:13.5px;font-weight:500;color:var(--ink-3);border:none;background:none;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;white-space:nowrap}
   .mnav button.active{color:var(--ink);border-bottom-color:var(--gold);font-weight:600}
+  .mnav-wrap::after{content:'';position:absolute;top:0;right:0;bottom:1px;width:30px;background:linear-gradient(to right,transparent,var(--surface) 65%);pointer-events:none;transition:opacity .15s}
+  .mnav-wrap.at-end::after{opacity:0}
   .content{padding:22px 18px 52px}
   .hero-row,.metrics,.grid-2{grid-template-columns:1fr}
   .intel-grid{grid-template-columns:1fr 1fr}
   .conv-layout{grid-template-columns:1fr}.conv-sidebar{max-height:260px}
+  .table-card{display:none}
+  .leads-mobile{display:block}
 }
-.mnav{display:none}
-@media(max-width:980px){.mnav{display:flex}}
 @media(max-width:520px){.metrics{grid-template-columns:1fr}.intel-grid{grid-template-columns:1fr}}
+.lead-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:11px;cursor:pointer}
+.lead-card:active{background:var(--bg-2,#faf8f4)}
+.lead-card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.lead-card-handle{font-weight:600;font-size:14.5px;color:var(--ink)}
+.lead-card-mid{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;font-size:13px;color:var(--ink-3)}
+.lead-card-msg{font-size:13px;color:var(--ink-2,var(--ink));line-height:1.4;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.lead-card.lead-priority{box-shadow:inset 3px 0 0 0 #d9a94e}
 
 /* ───── ACCOUNT TAB ───── */
 .acct-card{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
@@ -451,13 +463,15 @@ tbody tr.lead-priority:hover td{background:#fbf0d6}
     <span class="wm"><span class="brand-mark" style="width:26px;height:26px"><svg viewBox="0 0 24 24" fill="none"><path d="M5 19V7a4 4 0 014-4h2a4 4 0 010 8H9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 11l5 8" stroke="#c9a86a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Runova</span>
     <button class="sb-signout" style="width:auto;background:rgba(255,255,255,.14)" onclick="doSignOut()">Sign out</button>
   </div>
-  <div class="mnav">
-    <button class="active" onclick="showTab('overview',this)">Overview</button>
-    <button onclick="showTab('leads',this)">Leads</button>
-    <button onclick="showTab('conversations',this)">Conversations</button>
-    <button onclick="showTab('treatments',this)">Treatments</button>
-    <button onclick="showTab('account',this)">Account</button>
-    <button onclick="showTab('settings',this)">Settings</button>
+  <div class="mnav-wrap">
+    <div class="mnav" id="mnav">
+      <button class="active" onclick="showTab('overview',this)">Overview</button>
+      <button onclick="showTab('leads',this)">Leads</button>
+      <button onclick="showTab('conversations',this)">Conversations</button>
+      <button onclick="showTab('treatments',this)">Treatments</button>
+      <button onclick="showTab('account',this)">Account</button>
+      <button onclick="showTab('settings',this)">Settings</button>
+    </div>
   </div>
 
   <div class="shell">
@@ -562,6 +576,7 @@ async function startApp(){
   document.getElementById('loginPage').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('tab-overview').innerHTML = `<div class="loader"><div class="spinner"></div><div class="loader-text">Loading your dashboard…</div></div>`;
+  updateMnavFade();
   // Resolve which clinic this login belongs to (RLS + clinic_users mapping)
   const ok = await resolveClinic();
   if(!ok) return;
@@ -944,7 +959,27 @@ function renderLeads(){
             </tr>`;
           }).join('')}
       </tbody>
-    </table></div></div>`;
+    </table></div></div>
+    <div class="leads-mobile">
+      ${filtered.length===0
+        ? `<div class="empty">${IC.inbox}<div>No leads in this view yet.</div></div>`
+        : filtered.map(l=>{
+          const priority=(l.lead_temperature==='hot' && l.handoff_status==='human');
+          return `
+          <div class="lead-card${priority?' lead-priority':''}" onclick="openLeadModal(${JSON.stringify(l).replace(/"/g,'&quot;')})">
+            <div class="lead-card-top">
+              <span class="lead-card-handle">${displayHandle(l)}</span>
+              ${tempBadge(l.lead_temperature)||''}
+            </div>
+            <div class="lead-card-mid">
+              <span class="badge badge-${journeyOf(l)}">${JOURNEY_LABEL[journeyOf(l)]}</span>
+              <span class="tnum">£${l.estimated_value||0}</span>
+            </div>
+            <div class="lead-card-msg">${esc((l.last_message||'—').substring(0,90))}${(l.last_message||'').length>90?'…':''}</div>
+            <div class="time-ago tnum" data-ts="${lastMessageTime(l)||''}">${timeAgo(lastMessageTime(l))}</div>
+          </div>`;
+        }).join('')}
+    </div>`;
 }
 
 // One-tap outcome control, shown only once a lead is booked (or already has an outcome)
@@ -1565,6 +1600,21 @@ function showTab(name,btn){
   if(name==='settings') renderSettings();
   if(name==='account') renderAccount();
 }
+
+function updateMnavFade(){
+  const el = document.getElementById('mnav');
+  const wrap = el && el.parentElement;
+  if(!el || !wrap) return;
+  const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
+  wrap.classList.toggle('at-end', atEnd);
+}
+(function(){
+  const el = document.getElementById('mnav');
+  if(el){
+    el.addEventListener('scroll', updateMnavFade);
+    window.addEventListener('resize', updateMnavFade);
+  }
+})();
 </script>
 </body>
 </html>
