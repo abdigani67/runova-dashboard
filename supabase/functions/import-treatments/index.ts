@@ -152,7 +152,10 @@ async function claudeClean(
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-6",
+      // Renaming/normalising a scraped price list is mechanical structured
+      // cleanup, not reasoning-heavy — Haiku handles it well at ~1/3 the
+      // Sonnet cost (this task doesn't need Sonnet-tier judgment).
+      model: "claude-haiku-4-5",
       max_tokens: 8000,
       system: CLEAN_SYSTEM,
       messages: [{ role: "user", content: userContent }],
