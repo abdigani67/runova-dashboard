@@ -777,6 +777,16 @@ function handleLabel(h){
   const lead=allLeads.find(l=>l.instagram_handle===h);
   return displayHandle(lead||{instagram_handle:h});
 }
+// Jump straight to a DM with this lead. instagram_handle is a numeric IGSID, not
+// a real @username, so we need the resolved alias (from ig-usernames) to build a
+// working ig.me/m/<username> deep link; if it hasn't resolved yet, fall back to
+// the generic inbox and tell staff who to look for.
+function replyOnInstagram(handle){
+  const username = HANDLE_ALIASES[(handle||'').trim()];
+  if(username){ window.open('https://ig.me/m/'+encodeURIComponent(username), '_blank'); return; }
+  toast(`Couldn't find their @username yet — look for "${handleLabel(handle)}" in your inbox`, 3200);
+  window.open('https://www.instagram.com/direct/inbox/', '_blank');
+}
 
 // Build a 14-day enquiries area chart (inline SVG, no library)
 function enquiriesChart(){
@@ -917,7 +927,7 @@ function renderOverview(){
                 <div class="a-msg">${(l.last_message||'').substring(0,72)}${(l.last_message||'').length>72?'…':''}</div>
                 <div class="a-meta">£${l.estimated_value||0} est. value · ${l.last_contact?new Date(l.last_contact).toLocaleDateString('en-GB'):''}</div>
               </div>
-              <button class="a-btn" onclick="window.open('https://www.instagram.com/direct/inbox/','_blank')">Reply on Instagram</button>
+              <button class="a-btn" onclick="replyOnInstagram('${(l.instagram_handle||'').replace(/'/g,"\\'")}')">Reply on Instagram</button>
             </div>`).join('')}
       </div>
     </div>`;
@@ -1011,7 +1021,7 @@ function openLeadModal(lead){
     ${lead.temperature_reason?`<div style="margin-top:12px;font-size:13px;color:var(--ink-3)"><strong>Why this score:</strong> ${lead.temperature_reason}</div>`:''}
     <div style="margin-top:18px;display:flex;gap:9px;flex-wrap:wrap">
       <button class="btn-primary" onclick="openConvoFromModal('${lead.instagram_handle}');closeModal()">View conversation</button>
-      <button class="btn-secondary" onclick="window.open('https://www.instagram.com/direct/inbox/','_blank')">Reply on Instagram</button>
+      <button class="btn-secondary" onclick="replyOnInstagram('${(lead.instagram_handle||'').replace(/'/g,"\\'")}')">Reply on Instagram</button>
       ${(lead.lead_stage==='booked'||lead.booked)?`<button class="btn-secondary" onclick="markBooked('${lead.id}',false)">Booked — undo</button>`:`<button class="btn-good" onclick="markBooked('${lead.id}',true)">Mark as booked</button>`}
     </div>
     ${(lead.lead_stage==='booked'||lead.booked||lead.outcome)?`
