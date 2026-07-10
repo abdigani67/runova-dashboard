@@ -35,8 +35,8 @@
   --r:14px;--r-sm:10px;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.5;letter-spacing:-.006em}
+html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.5;letter-spacing:-.006em;overflow-x:hidden;max-width:100vw}
 .serif{font-family:'Fraunces',Georgia,serif}
 .tnum{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -90,7 +90,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--i
 .mtop{display:none}
 
 /* Content */
-.content{padding:30px 34px 60px;max-width:1080px}
+.content{padding:30px 34px 60px;max-width:1080px;min-width:0}
 .tab-enter{animation:fadeUp .34s cubic-bezier(.22,1,.36,1)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
 .page-title{font-family:'Fraunces',serif;font-size:24px;font-weight:600;letter-spacing:-.01em;margin-bottom:3px}
@@ -98,7 +98,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--i
 
 /* ───── HERO ROW: big figure + chart ───── */
 .hero-row{display:grid;grid-template-columns:1fr 1.4fr;gap:14px;margin-bottom:14px}
-.hero-figure{background:linear-gradient(155deg,var(--aubergine) 0%,var(--aubergine-deep) 100%);border-radius:var(--r);padding:26px 28px;color:#fff;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;min-height:188px}
+.hero-figure{background:linear-gradient(155deg,var(--aubergine) 0%,var(--aubergine-deep) 100%);border-radius:var(--r);padding:26px 28px;color:#fff;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;min-height:188px;min-width:0}
 .hero-figure::before{content:'';position:absolute;top:-50%;right:-20%;width:280px;height:280px;background:radial-gradient(circle,rgba(201,168,106,.16),transparent 65%);pointer-events:none}
 .hf-top{position:relative;z-index:1}
 .hf-label{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--gold-soft);font-weight:600;margin-bottom:14px}
@@ -106,16 +106,16 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--i
 .hf-value .cur{color:var(--gold);font-size:28px;vertical-align:top;margin-right:1px}
 .hf-foot{position:relative;z-index:1;font-size:12.5px;color:rgba(255,255,255,.6);line-height:1.5}
 .hf-foot b{color:#fff;font-weight:600}
-.chart-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;display:flex;flex-direction:column}
-.chart-hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+.chart-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;display:flex;flex-direction:column;min-width:0}
+.chart-hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px}
 .chart-title{font-size:12.5px;font-weight:600;color:var(--ink-2)}
 .chart-total{font-size:12.5px;color:var(--muted)}
-.chart-wrap{flex:1;min-height:120px;position:relative}
+.chart-wrap{flex:1;min-height:120px;position:relative;min-width:0}
 .chart-wrap svg{width:100%;height:100%;display:block;overflow:visible}
 
 /* ───── METRIC STRIP ───── */
 .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
-.metric{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;transition:box-shadow .15s,transform .15s}
+.metric{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;transition:box-shadow .15s,transform .15s;min-width:0}
 .metric:hover{box-shadow:var(--shadow);transform:translateY(-1px)}
 .metric-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .metric-label{font-size:12px;font-weight:500;color:var(--ink-3)}
@@ -128,7 +128,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--i
 
 /* ───── PANELS ───── */
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px;min-width:0}
 .panel-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
 .panel-title{font-size:13px;font-weight:600;letter-spacing:-.01em}
 .panel-action{font-size:12.5px;color:var(--aubergine-700);cursor:pointer;font-weight:500}
@@ -227,7 +227,7 @@ tbody tr.lead-priority:hover td{background:#fbf0d6}
 .modal-close:hover{background:var(--line-2)}
 .modal-body{padding:24px}
 .intel-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px}
-.intel-item{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:13px 14px}
+.intel-item{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:13px 14px;min-width:0}
 .intel-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;font-weight:600}
 .intel-value{font-size:14.5px;font-weight:600}
 .summary-box{background:var(--bg);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:var(--r-sm);padding:15px;font-size:13px;line-height:1.6;color:var(--ink-2)}
@@ -268,11 +268,8 @@ tbody tr.lead-priority:hover td{background:#fbf0d6}
 .msg-row.ai .msg-time,.msg-row.staff .msg-time{text-align:right}
 .conv-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted);min-height:400px;font-size:13.5px}
 .conv-empty svg{width:30px;height:30px;stroke:var(--line);stroke-width:1.5}
-.conv-compose{display:flex;gap:9px;align-items:flex-end;padding:13px 20px;border-top:1px solid var(--line);background:var(--surface)}
-.conv-compose textarea{flex:1;resize:none;max-height:90px;padding:10px 13px;border:1px solid var(--line);border-radius:10px;font-size:13.5px;font-family:inherit;outline:none;background:var(--bg);transition:border-color .15s,box-shadow .15s}
-.conv-compose textarea:focus{border-color:var(--aubergine-700);box-shadow:0 0 0 3px rgba(74,37,99,.1)}
-.conv-compose textarea:disabled{opacity:.6}
-.conv-compose .btn-primary:disabled{opacity:.55;cursor:default}
+.conv-compose{padding:13px 20px;border-top:1px solid var(--line);background:var(--surface)}
+.conv-reply-btn{width:100%}
 
 /* ───── TREATMENTS ───── */
 .treatments-note{margin-bottom:18px;font-size:13.5px;color:var(--ink-3);line-height:1.6}
@@ -1140,46 +1137,10 @@ function buildConvoMain(handle){
         <div class="msg-time">${m.sender_type==='ai'?'AI':m.sender_type==='staff'?'Staff':'Customer'} · ${m.timestamp?new Date(m.timestamp).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):''}</div></div></div>`).join('')}
     </div>
     <div class="conv-compose">
-      <textarea id="composeInput" rows="1" placeholder="Reply as staff — sends for real on Instagram…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendStaffMessage('${handle}')}"></textarea>
-      <button class="btn-primary" id="composeSendBtn" onclick="sendStaffMessage('${handle}')">Send</button>
+      <button class="btn-primary conv-reply-btn" onclick="replyOnInstagram('${handle}')">Reply on Instagram</button>
     </div>`;
 }
 function selectConvo(handle){ activeConvoHandle=handle; renderConversations(); setTimeout(()=>{const el=document.getElementById('msgList');if(el)el.scrollTop=el.scrollHeight;},50); }
-const SEND_MESSAGE_FN = SUPA_URL + '/functions/v1/send-message';
-// Sends a real Instagram DM via the send-message Edge Function (which holds the
-// clinic's token server-side), then hands the lead to staff so the AI stops
-// auto-replying — mirrors what already happens when staff replies directly in
-// the Instagram app itself.
-async function sendStaffMessage(handle){
-  const input = document.getElementById('composeInput');
-  const btn = document.getElementById('composeSendBtn');
-  const text = (input.value||'').trim();
-  if(!text) return;
-  btn.disabled = true; input.disabled = true;
-  try{
-    const {data:{session}} = await supabaseClient.auth.getSession();
-    if(!session) throw new Error('Your session has expired — please sign in again.');
-    const res = await fetch(SEND_MESSAGE_FN, {
-      method:'POST',
-      headers:{ 'Authorization':'Bearer '+session.access_token, 'apikey':ANON_KEY, 'Content-Type':'application/json' },
-      body: JSON.stringify({ handle, message_text: text })
-    });
-    const data = await res.json().catch(()=>({}));
-    if(!res.ok || data.error) throw new Error(data.error || ('Request failed ('+res.status+')'));
-    allConvos.push({ id:'temp-'+Date.now(), instagram_handle:handle, sender_type:'staff', message_text:text, timestamp:new Date().toISOString() });
-    const lead = allLeads.find(l=>l.instagram_handle===handle);
-    if(lead){ lead.handoff_status='human'; lead.ai_active=false; }
-    renderConversations();
-    setTimeout(()=>{
-      const msgEl=document.getElementById('msgList'); if(msgEl) msgEl.scrollTop=msgEl.scrollHeight;
-      const freshInput=document.getElementById('composeInput'); if(freshInput) freshInput.focus();
-    },50);
-    if(data.tagged) toast("Sent — this lead hadn't messaged recently, so Instagram needed a human-agent tag to deliver it", 4200);
-  }catch(e){
-    toast('Failed to send — '+e.message, 3600);
-    btn.disabled = false; input.disabled = false;
-  }
-}
 
 // ── TREATMENTS ──
 function renderTreatments(){
