@@ -1004,7 +1004,10 @@ function renderLeads(){
               ${tempBadge(l.lead_temperature)||''}
             </div>
             <div class="lead-card-mid">
-              <span class="badge badge-${journeyOf(l)}">${JOURNEY_LABEL[journeyOf(l)]}</span>
+              <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span class="badge badge-${journeyOf(l)}">${JOURNEY_LABEL[journeyOf(l)]}</span>
+                ${journeyOf(l)==='staff'?`<button class="pill-handback" onclick="event.stopPropagation();handBackToAI('${l.id}',this)">Hand back to AI</button>`:''}
+              </span>
               <span class="tnum">£${l.estimated_value||0}</span>
             </div>
             <div class="lead-card-msg">${esc((l.last_message||'—').substring(0,90))}${(l.last_message||'').length>90?'…':''}</div>
