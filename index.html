@@ -1220,7 +1220,11 @@ async function previewImport(){
     if(data?.needs_fallback){ err.textContent=data.message||'Try pasting the price list instead.'; err.style.display='block'; return; }
     const treatments = data?.treatments||[];
     if(!treatments.length){ err.textContent="Couldn't find any treatments to import."; err.style.display='block'; return; }
-    importPending = url ? {url} : {text};
+    // Store the already-cleaned list, not the source — confirmImport() inserts
+    // this directly rather than re-calling the function (which would re-fetch
+    // the page and re-run Claude cleanup a second time, doubling cost/latency
+    // for no benefit since the result would be the same treatments anyway).
+    importPending = treatments;
     document.getElementById('imPreviewSummary').textContent =
       `Found ${treatments.length} treatment${treatments.length===1?'':'s'}${data.cleanup && data.cleanup!=='claude' ? ' (basic cleanup — set ANTHROPIC_API_KEY for AI cleanup)' : ''}. Review below, then confirm to add them — this won't touch your existing treatments.`;
     document.getElementById('imPreviewList').innerHTML = treatments.map(t=>`
@@ -1237,15 +1241,20 @@ async function previewImport(){
   }
 }
 async function confirmImport(){
-  if(!importPending) return;
+  if(!importPending || !importPending.length) return;
   const btn=document.getElementById('imConfirmBtn'); btn.disabled=true; btn.textContent='Importing…';
   try{
-    const data = await callImportTreatments({...importPending, commit:true});
+    const rows = importPending.map(t=>({
+      treatment_name:t.treatment_name, price_from:t.price_from, price_to:t.price_to,
+      duration_mins:t.duration_mins, description:t.description, clinic_id:clinicId, active:true
+    }));
+    const {data,error} = await supabaseClient.from('treatments').insert(rows).select('id');
     btn.disabled=false; btn.textContent='Confirm import';
-    if(data?.error){ toast('Import failed — '+data.error); return; }
+    if(error){ toast('Import failed — '+error.message); return; }
+    const inserted = data?.length||0;
     await refreshTreatments();
     closeImportModal();
-    toast(`Imported ${data.inserted} treatment${data.inserted===1?'':'s'} ✓`, 2600);
+    toast(`Imported ${inserted} treatment${inserted===1?'':'s'} ✓`, 2600);
   }catch(e){
     btn.disabled=false; btn.textContent='Confirm import';
     toast('Import failed — '+e.message);

@@ -129,7 +129,9 @@ function extractJsonArray(text: string): Treatment[] {
   // pull the first top-level [ ... ] out of the model response
   const start = text.indexOf("[");
   const end = text.lastIndexOf("]");
-  if (start === -1 || end === -1 || end < start) throw new Error("no JSON array in model output");
+  if (start === -1 || end === -1 || end < start) {
+    throw new Error(`no JSON array in model output (got: ${JSON.stringify(text.slice(0, 200))})`);
+  }
   const arr = JSON.parse(text.slice(start, end + 1));
   if (!Array.isArray(arr)) throw new Error("model output not an array");
   return arr;
@@ -159,6 +161,13 @@ async function claudeClean(
   if (!res.ok) throw new Error(`anthropic ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const data = await res.json();
   const text = (data?.content ?? []).map((b: any) => b?.text ?? "").join("");
+  // A large scraped menu can exhaust max_tokens before Claude closes the JSON
+  // array — surface that distinctly rather than the generic "no array" error.
+  if (data?.stop_reason === "max_tokens") {
+    throw new Error(
+      `model output truncated at max_tokens before completing the JSON array (${payload.items?.length ?? 0} raw items)`,
+    );
+  }
   return extractJsonArray(text);
 }
 
@@ -267,8 +276,19 @@ Deno.serve(async (req) => {
     let treatments: Treatment[];
     let cleanup: string;
     if (ANTHROPIC_API_KEY) {
-      treatments = sanitise(await claudeClean(ANTHROPIC_API_KEY, rawItems ? { items: rawItems } : { text }));
-      cleanup = "claude";
+      try {
+        treatments = sanitise(await claudeClean(ANTHROPIC_API_KEY, rawItems ? { items: rawItems } : { text }));
+        cleanup = "claude";
+      } catch (e) {
+        // A large/unusual menu can make Claude cleanup fail (truncation, no
+        // JSON in the reply, etc). If we have structured scraped items, fall
+        // back to the basic normaliser instead of failing the whole import —
+        // worse quality names, but the clinic still gets something to edit.
+        console.error("claudeClean failed:", (e as Error)?.message ?? e);
+        if (!rawItems) throw e;
+        treatments = sanitise(basicClean(rawItems));
+        cleanup = "basic (Claude cleanup failed — used basic normaliser; edit treatment names if needed)";
+      }
     } else if (rawItems) {
       treatments = sanitise(basicClean(rawItems));
       cleanup = "basic (ANTHROPIC_API_KEY not set — set it for full Claude cleanup)";
