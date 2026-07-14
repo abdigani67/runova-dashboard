@@ -688,7 +688,14 @@ function subscribeRealtime(){
     else if(p.eventType==='DELETE') allLeads=allLeads.filter(l=>l.id!==p.old.id);
     lastSignature=dataSignature(); renderOverview(); if(document.getElementById('tab-leads').style.display!=='none') renderLeads();
   };
-  const onConvo=(p)=>{ allConvos.push(p.new); lastSignature=dataSignature(); renderOverview(); if(document.getElementById('tab-conversations').style.display!=='none') renderConversations(); flashLiveCards(); };
+  // If this confirms a message we already added optimistically (e.g. a staff
+  // send — see sendStaffMessage), replace the temp entry instead of pushing a
+  // second one; otherwise it's a genuinely new message, so append it.
+  const onConvo=(p)=>{
+    const tempIdx = allConvos.findIndex(c=>typeof c.id==='string' && c.id.startsWith('temp-') && c.instagram_handle===p.new.instagram_handle && c.sender_type===p.new.sender_type && c.message_text===p.new.message_text);
+    if(tempIdx>=0) allConvos[tempIdx]=p.new; else allConvos.push(p.new);
+    lastSignature=dataSignature(); renderOverview(); if(document.getElementById('tab-conversations').style.display!=='none') renderConversations(); flashLiveCards();
+  };
   const ls=supabaseClient.channel('leads-rt').on('postgres_changes',{event:'*',schema:'public',table:'leads',filter:`clinic_id=eq.${clinicId}`},onLeads).subscribe((s)=>{ if(s==='SUBSCRIBED'){realtimeOk=true;setConn('live');} });
   const cs=supabaseClient.channel('convos-rt').on('postgres_changes',{event:'INSERT',schema:'public',table:'conversations',filter:`clinic_id=eq.${clinicId}`},onConvo).subscribe();
   realtimeSubs=[ls,cs];

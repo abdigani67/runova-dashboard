@@ -89,17 +89,12 @@ Deno.serve(async (req) => {
       return json({ error: tagged ? `${msg} (this lead hasn't messaged in over 7 days, so Instagram won't allow a reply until they message you again)` : msg }, 502);
     }
 
-    await admin.from("conversations").insert({
-      clinic_id: clinicId,
-      instagram_handle: handle,
-      sender_type: "staff",
-      message_text: text,
-      timestamp: new Date().toISOString(),
-    });
-    await admin.from("leads")
-      .update({ handoff_status: "human", ai_active: false, staff_last_replied: new Date().toISOString() })
-      .eq("clinic_id", clinicId).eq("instagram_handle", handle);
-
+    // Don't write to conversations/leads here — the Make.com DM engine already
+    // gets an "echo" webhook for every message this account sends (regardless
+    // of whether it was typed in the Instagram app or sent via this API call),
+    // and its own "Human takeover" branch logs it to conversations (with the
+    // real Instagram message_id) and sets handoff_status/ai_active. Writing
+    // here too raced that webhook and produced a duplicate row for every send.
     return json({ ok: true, tagged });
   } catch (e) {
     return json({ error: String((e as Error)?.message ?? e) }, 500);
