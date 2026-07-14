@@ -750,6 +750,23 @@ function lastMessageTime(l){
   }
   return bestRaw || l.last_contact || l.updated_at || null;
 }
+// leads.last_message is only ever written on inbound customer messages (see the
+// Make.com DM engine), so it goes stale the moment the AI or staff replies —
+// the preview text would show an old customer message even though the time
+// next to it (lastMessageTime, above) correctly reflects the newer reply.
+// Derive the preview from the same conversation log instead, so text and time
+// can never point at two different messages.
+function lastMessagePreview(l){
+  let bestMs=-1, bestText=null, bestSender=null;
+  for(const c of allConvos){
+    if(c.instagram_handle!==l.instagram_handle || !c.timestamp) continue;
+    const ms=new Date(c.timestamp).getTime();
+    if(!isNaN(ms) && ms>bestMs){ bestMs=ms; bestText=c.message_text; bestSender=c.sender_type; }
+  }
+  if(bestText==null) return l.last_message||'';
+  const prefix = bestSender==='user' ? '' : (bestSender==='staff' ? 'You: ' : 'AI: ');
+  return prefix+(bestText||'');
+}
 
 // Instagram's messaging webhook only gives us a numeric sender ID. We resolve
 // those to real @usernames on demand via the ig-usernames Edge Function (which
@@ -958,7 +975,7 @@ function renderOverview(){
             <div class="a-item">
               <div class="a-body">
                 <div class="a-handle">${esc(displayHandle(l))} ${tempBadge(l.lead_temperature)}</div>
-                <div class="a-msg">${(l.last_message||'').substring(0,72)}${(l.last_message||'').length>72?'…':''}</div>
+                <div class="a-msg">${(()=>{const m=lastMessagePreview(l);return m.substring(0,72)+(m.length>72?'…':'')})()}</div>
                 <div class="a-meta">£${l.estimated_value||0} est. value · ${l.last_contact?new Date(l.last_contact).toLocaleDateString('en-GB'):''}</div>
               </div>
               <button class="a-btn" onclick="replyOnInstagram('${(l.instagram_handle||'').replace(/'/g,"\\'")}')">Reply on Instagram</button>
@@ -998,7 +1015,7 @@ function renderLeads(){
               <td>${tempBadge(l.lead_temperature)||'—'}</td>
               <td><span class="${sentClass(l.sentiment)}">${l.sentiment||'—'}</span></td>
               <td class="tnum">£${l.estimated_value||0}</td>
-              <td title="${(l.last_message||'').replace(/"/g,'&quot;')}">${(l.last_message||'—').substring(0,38)}${(l.last_message||'').length>38?'…':''}<span class="time-ago tnum" data-ts="${lastMessageTime(l)||''}">${timeAgo(lastMessageTime(l))}</span></td>
+              <td title="${lastMessagePreview(l).replace(/"/g,'&quot;')}">${lastMessagePreview(l).substring(0,38)||'—'}${lastMessagePreview(l).length>38?'…':''}<span class="time-ago tnum" data-ts="${lastMessageTime(l)||''}">${timeAgo(lastMessageTime(l))}</span></td>
               <td>${outcomeCell(l)}</td>
             </tr>`;
           }).join('')}
@@ -1022,7 +1039,7 @@ function renderLeads(){
               </span>
               <span class="tnum">£${l.estimated_value||0}</span>
             </div>
-            <div class="lead-card-msg">${esc((l.last_message||'—').substring(0,90))}${(l.last_message||'').length>90?'…':''}</div>
+            <div class="lead-card-msg">${esc(lastMessagePreview(l).substring(0,90)||'—')}${lastMessagePreview(l).length>90?'…':''}</div>
             <div class="time-ago tnum" data-ts="${lastMessageTime(l)||''}">${timeAgo(lastMessageTime(l))}</div>
           </div>`;
         }).join('')}
